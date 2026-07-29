@@ -230,7 +230,7 @@ const sb = window.supabase.createClient(SB_URL, SB_ANON,
 
 const SLABEL={todo:'a fazer',doing:'andando',done:'feito',replan:'replanejado',cancel:'cancelado'};
 const TLABEL={todo:'a fazer',doing:'andando',blocked:'bloqueado',done:'feito'};
-const ESCOPO=['Thomas','Vini','B2','Bruna Bispo','Jota','Ramiro','Manuella','Mauricio','Felipe','Juliano'];
+const ESCOPO=['Thomas','Vini','B2','Bruna Bispo','Jota','Ramiro','Manuella','Mauricio','Felipe','Giuliano'];
 let PROJ=[], ADO=[], TKS=[], USER=null;
 
 const $=s=>document.getElementById(s);
@@ -331,7 +331,7 @@ function quemEscreveu(d){
   if(!d){$('chips').innerHTML='<span class="chip">—</span>';$('fora').innerHTML='';return;}
   $('mes-ativos').textContent=mesBR(d.mes)+(d.fechado?'':' · parcial');
   const ativos=d.ativos||[], top2=d.top2||[];
-  const escopo=['Thomas','Vini','B2','Bruna Bispo','Jota','Ramiro','Manuella','Mauricio','Felipe','Juliano'];
+  const escopo=['Thomas','Vini','B2','Bruna Bispo','Jota','Ramiro','Manuella','Mauricio','Felipe','Giuliano'];
   const inativos=escopo.filter(p=>!ativos.includes(p));
   $('chips').innerHTML=ativos.map(p=>`<span class="chip ${top2.includes(p)?'top':''}">${esc(p)}</span>`).join('')
     +inativos.map(p=>`<span class="chip fora">${esc(p)}</span>`).join('');
