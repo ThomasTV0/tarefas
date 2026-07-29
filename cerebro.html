@@ -30,7 +30,7 @@
   .hd .sair{background:rgba(255,255,255,.12);color:#EFEAE4;border:none;border-radius:8px;padding:5px 11px;
     font:600 12px var(--fonte);cursor:pointer}
   .hd .sair:hover{background:rgba(255,255,255,.22)}
-  .wrap{padding:18px 26px 34px;display:flex;flex-direction:column;gap:16px;max-width:1280px;width:100%}
+  .wrap{padding:18px 26px 34px;display:flex;flex-direction:column;gap:16px;max-width:1320px;width:100%;margin:0 auto}
   .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px}
   .st{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);padding:12px 16px 11px;box-shadow:var(--sombra)}
   .st .l{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--texto-sec)}
@@ -73,7 +73,12 @@
   .g .cod{font-size:11.5px;font-weight:750;color:var(--grafite-2)}
   .lane{position:relative;height:26px;background:var(--suave);border:1px solid var(--borda);border-radius:7px;overflow:hidden}
   .lane .bar2{position:absolute;top:3px;height:18px;border-radius:5px;display:flex;align-items:center;
-    padding:0 8px;font-size:11px;font-weight:600;color:#3A2A1C;white-space:nowrap;overflow:hidden;cursor:pointer}
+    padding:0 8px;font-size:11px;font-weight:600;color:#3A2A1C;white-space:nowrap;cursor:pointer;
+    overflow:visible;min-width:16px}
+  .lane .bar2 .lbl{overflow:hidden;text-overflow:ellipsis}
+  /* projeto curto: rótulo transborda para a direita, em cinza, sem cortar */
+  .lane .bar2.curto{padding-right:0}
+  .lane .bar2.curto .lbl{position:absolute;left:calc(100% + 6px);color:var(--texto-sec);font-weight:600}
   .bar2.todo{background:var(--borda-2);color:var(--grafite-2)}
   .bar2.doing{background:var(--laranja)}
   .bar2.done{background:var(--done);color:#F2F5F1}
@@ -106,9 +111,10 @@
     border-radius:10px;padding:11px;cursor:pointer}
   .gcard button:hover{background:var(--laranja-forte);color:#fff}
   #g-msg{font-size:12.5px;margin-top:12px;min-height:18px}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120%);background:var(--grafite);
-    color:#fff;font-size:13px;padding:11px 18px;border-radius:10px;transition:transform .25s;z-index:200}
-  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--grafite);
+    color:#fff;font-size:13px;padding:11px 18px;border-radius:10px;z-index:200;
+    opacity:0;visibility:hidden;transition:opacity .2s,transform .2s,visibility .2s}
+  .toast.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
 </style>
 </head><body>
 
@@ -303,9 +309,9 @@ function gantt(){
       <div class="cod">${esc(p.codigo)}</div>
       <div class="lane">
         <div class="hoje" style="left:${hj}%"></div>
-        <div class="bar2 ${p.status}" style="left:${ini}%;width:${Math.min(w,100-ini)}%"
-             onclick="det('${p.codigo}')" title="${esc(p.titulo)}">
-          ${atraso?'⚠ ':''}${esc(p.titulo)}</div>
+        <div class="bar2 ${p.status} ${w<14?'curto':''}" style="left:${ini}%;width:${Math.min(w,100-ini)}%"
+             onclick="det('${p.codigo}')" title="${esc(p.titulo)} · ${esc(p.dono||'')}">
+          <span class="lbl">${atraso?'⚠ ':''}${esc(p.titulo)}</span></div>
       </div>
       <div class="meta-col">
         <span class="dono" title="${esc(p.dono||'')}">${esc(p.dono||'')}</span>
