@@ -108,6 +108,33 @@
   .det .kv span{color:var(--texto-sec);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
   .det .kv div{color:var(--texto)}
   .det a{color:var(--laranja-escuro);text-decoration:none;font-weight:600}
+  /* nível de uso por pessoa */
+  .pessoas{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:7px 18px}
+  .pl{display:grid;grid-template-columns:96px auto 1fr;align-items:center;gap:9px;font-size:12px}
+  .pl .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pl .dots{display:flex;gap:3px}
+  .pl .dots i{width:9px;height:9px;border-radius:50%;background:var(--borda-2)}
+  .pl .dots i.on{background:var(--laranja)}
+  .pl .nv{font-size:11px;color:var(--texto-sec)}
+  .pl.zero .nm{color:var(--texto-sec)}
+  .pl.zero .nv{color:var(--err)}
+  /* cards sem prazo */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:9px}
+  .cd{border:1px solid var(--borda);border-left:3px solid var(--borda-2);border-radius:0 9px 9px 0;
+    padding:10px 13px;background:var(--suave);cursor:pointer}
+  .cd.doing{border-left-color:var(--laranja)}.cd.done{border-left-color:var(--done)}
+  .cd .t{font-size:12.5px;font-weight:650}
+  .cd .m{font-size:11px;color:var(--texto-sec);margin-top:3px}
+  .cd .r{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
+  /* tarefas */
+  .tks{display:flex;flex-direction:column;gap:6px}
+  .tk{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;font-size:12.5px;
+    padding:7px 11px;border:1px solid var(--borda);border-radius:8px;background:var(--suave)}
+  .tk .st2{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--texto-sec)}
+  .tk .pz{font-size:11px;color:var(--texto-sec)}
+  .tk.done{opacity:.55}.tk.done .tt{text-decoration:line-through}
+  .tk .tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .vazio{font-size:11.5px;color:var(--texto-sec)}
   .rod{font-size:11px;color:var(--texto-sec);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
   .rod code{background:var(--suave);border:1px solid var(--borda);border-radius:5px;padding:1px 6px;font-size:10.5px}
   /* gate */
@@ -167,9 +194,21 @@
     </div>
 
     <div class="pn">
-      <h3>Mini-projetos <span>ago → dez/2026 · clique na barra para ver o detalhe · status e % salvam na hora</span></h3>
-      <div class="months"><span>ago</span><span>set</span><span>out</span><span>nov</span><span>dez</span></div>
+      <h3>Nível de uso por pessoa <span>● mês com ≥3 notas · ○ mês sem · a leitura por pessoa, não só o total</span></h3>
+      <div class="pessoas" id="pessoas"></div>
+    </div>
+
+    <div class="pn">
+      <h3>Roadmap · com janela <span>clique na barra para ver o detalhe · status e % salvam na hora</span></h3>
+      <div class="months" id="months"></div>
       <div class="gantt" id="gantt"></div>
+      <h3 style="margin-top:18px">Sem prazo · contínuo <span>cadência ou manutenção — não tem início e fim</span></h3>
+      <div class="cards" id="semprazo"></div>
+    </div>
+
+    <div class="pn">
+      <h3>Tarefas do Cérebro <span>reunião pontual e item solto não é projeto — mora no painel de Tarefas</span></h3>
+      <div class="tks" id="tarefas"></div>
     </div>
 
     <div class="rod">
@@ -189,10 +228,10 @@ const VAULT='Cerebro Dot';
 const sb = window.supabase.createClient(SB_URL, SB_ANON,
   {auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}});
 
-const MESES=['2026-08','2026-09','2026-10','2026-11','2026-12'];
-const INI='2026-08-01', FIM='2026-12-31';
 const SLABEL={todo:'a fazer',doing:'andando',done:'feito',replan:'replanejado',cancel:'cancelado'};
-let PROJ=[], ADO=[], USER=null;
+const TLABEL={todo:'a fazer',doing:'andando',blocked:'bloqueado',done:'feito'};
+const ESCOPO=['Thomas','Vini','B2','Bruna Bispo','Jota','Ramiro','Manuella','Mauricio','Felipe','Juba'];
+let PROJ=[], ADO=[], TKS=[], USER=null;
 
 const $=s=>document.getElementById(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -215,9 +254,10 @@ async function sair(){await sb.auth.signOut();location.reload();}
 
 /* ── dados ── */
 async function carregar(){
-  const [p,a]=await Promise.all([
+  const [p,a,t]=await Promise.all([
     sb.from('cerebro_projetos').select('*').order('ordem'),
-    sb.from('cerebro_adocao').select('*').order('mes')]);
+    sb.from('cerebro_adocao').select('*').order('mes'),
+    sb.from('tarefas').select('*').eq('projeto','Cerebro Dot')]);
   if(p.error||a.error){
     const e=(p.error||a.error);
     toast('Erro ao carregar: '+e.message);
@@ -225,13 +265,14 @@ async function carregar(){
       toast('Tabelas não criadas — rode sql/schema_cerebro.sql no Supabase.');
     return;
   }
-  PROJ=p.data||[]; ADO=a.data||[];
+  PROJ=p.data||[]; ADO=a.data||[]; TKS=t.error?[]:(t.data||[]);
   render();
 }
 function realtime(){
   sb.channel('rt-cerebro')
     .on('postgres_changes',{event:'*',schema:'public',table:'cerebro_projetos'},carregar)
     .on('postgres_changes',{event:'*',schema:'public',table:'cerebro_adocao'},carregar)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tarefas'},carregar)
     .subscribe();
 }
 
@@ -244,7 +285,7 @@ const cob=d=>(d&&d.areas_total)?d.areas_ativas/d.areas_total:null;
 function render(){
   const cur=ADO.length?ADO[ADO.length-1]:null;
   $('hd-mes').textContent=cur?('adoção '+mesBR(cur.mes)+(cur.fechado?'':' · parcial')):'sem medição';
-  tiles(cur); barsRA(); listaCriadas(); quemEscreveu(cur); gantt();
+  tiles(cur); barsRA(); listaCriadas(); quemEscreveu(cur); pessoas(); gantt(); semPrazo(); tarefas();
   const ts=[...PROJ.map(p=>p.atualizado_em),...ADO.map(a=>a.atualizado_em)].filter(Boolean).sort().pop();
   $('rod-upd').textContent=ts?('atualizado '+new Date(ts).toLocaleString('pt-BR')):'';
 }
@@ -302,10 +343,66 @@ function quemEscreveu(d){
       <b>${resto}</b></div>`;
 }
 
+/* nível de uso por pessoa: matriz pessoa × mês (● = mês com ≥3 notas) */
+function pessoas(){
+  const meses=ADO.map(d=>d.mes);
+  const linhas=ESCOPO.map(nome=>{
+    const on=meses.map(m=>{const d=ADO.find(x=>x.mes===m);return !!(d&&(d.ativos||[]).includes(nome));});
+    const n=on.filter(Boolean).length, ult=on[on.length-1], pen=on[on.length-2];
+    let nv;
+    if(n===0) nv='nunca usou';
+    else if(n===meses.length) nv='constante';
+    else if(ult&&!pen) nv='entrou agora';
+    else if(!ult&&pen) nv='parou';
+    else if(!ult) nv=`fora há ${on.slice().reverse().findIndex(Boolean)} mês(es)`;
+    else nv=`${n} de ${meses.length} meses`;
+    return {nome,on,n,nv,zero:n===0};
+  }).sort((a,b)=>b.n-a.n||a.nome.localeCompare(b.nome));
+  $('pessoas').innerHTML=linhas.map(l=>`<div class="pl ${l.zero?'zero':''}">
+      <span class="nm">${esc(l.nome)}</span>
+      <span class="dots">${l.on.map(o=>`<i class="${o?'on':''}"></i>`).join('')}</span>
+      <span class="nv">${esc(l.nv)}</span></div>`).join('');
+}
+
+/* roadmap sem prazo (contínuo/cadência) */
+function semPrazo(){
+  const lista=PROJ.filter(p=>!p.inicio&&!p.fim);
+  $('semprazo').innerHTML=lista.length?lista.map(p=>`<div class="cd ${p.status}" onclick="det('${p.codigo}')">
+      <div class="t">${esc(p.codigo)} · ${esc(p.titulo)}</div>
+      <div class="m">${esc(p.metrica)}</div>
+      <div class="r"><span class="dono">${esc(p.dono||'')}</span>
+        <span class="st2" style="font-size:10.5px;font-weight:700;color:var(--texto-sec)">${SLABEL[p.status]}</span></div>
+      <div class="det" id="det-${p.codigo}" style="grid-column:auto;margin-top:8px">
+        ${esc(p.objetivo)}<br><b>entrega:</b> ${esc(p.entregavel)}</div>
+    </div>`).join(''):'<div class="vazio">nada sem prazo</div>';
+}
+
+/* tarefas do projeto (painel de Tarefas, projeto = Cerebro Dot) */
+function tarefas(){
+  const ordem={doing:0,todo:1,blocked:2,done:3};
+  const l=[...TKS].sort((a,b)=>(ordem[a.status]??9)-(ordem[b.status]??9)||String(a.prazo||'9').localeCompare(String(b.prazo||'9')));
+  $('tarefas').innerHTML=l.length?l.map(t=>`<div class="tk ${t.status}">
+      <span class="tt">${esc(t.titulo)}</span>
+      <span class="pz">${t.prazo?fmtBR(t.prazo):'sem prazo'}</span>
+      <span class="st2">${TLABEL[t.status]||t.status}</span></div>`).join('')
+    :'<div class="vazio">nenhuma tarefa com projeto “Cerebro Dot” — crie com <code>py tarefas_cli.py add … --projeto "Cerebro Dot"</code></div>';
+}
+
 function gantt(){
-  const total=dias(INI,FIM), hoje=new Date().toISOString().slice(0,10);
+  const comData=PROJ.filter(p=>p.inicio&&p.fim);
+  if(!comData.length){$('gantt').innerHTML='<div class="vazio">nada com janela</div>';$('months').innerHTML='';return;}
+  // a janela do gráfico se ajusta ao que existe (mês do menor início → mês do maior fim)
+  const ini0=comData.map(p=>p.inicio).sort()[0], fim0=comData.map(p=>p.fim).sort().pop();
+  const INI=ini0.slice(0,8)+'01';
+  const fd=new Date(fim0), FIM=new Date(fd.getFullYear(),fd.getMonth()+1,0).toISOString().slice(0,10);
+  const total=Math.max(1,dias(INI,FIM)), hoje=new Date().toISOString().slice(0,10);
   const hj=Math.max(0,Math.min(100,(dias(INI,hoje)/total)*100));
-  $('gantt').innerHTML=PROJ.map(p=>{
+  const M=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  let cols=[], cur=new Date(INI);
+  while(cur.toISOString().slice(0,10)<=FIM){cols.push(M[cur.getMonth()]);cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);}
+  $('months').style.gridTemplateColumns=`repeat(${cols.length},1fr)`;
+  $('months').innerHTML=cols.map(c=>`<span>${c}</span>`).join('');
+  $('gantt').innerHTML=comData.map(p=>{
     const ini=Math.max(0,(dias(INI,p.inicio||INI)/total)*100);
     const w=Math.max(4,((dias(p.inicio||INI,p.fim||FIM))/total)*100);
     const atraso=(p.fim&&p.fim<hoje&&p.status!=='done'&&p.status!=='cancel');
