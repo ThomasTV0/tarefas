@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="pt-br"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23F79D63' fill-opacity='.22'/%3E%3Ccircle cx='16' cy='16' r='9.5' fill='%23F79D63'/%3E%3C/svg%3E">
+<title>Cérebro DOT — meta do semestre</title>
+<style>
+  :root{
+    --grafite:#2B2724;--grafite-2:#4A433D;--grafite-3:#6B635B;
+    --laranja:#F79D63;--laranja-forte:#E8823F;--laranja-escuro:#B05C1F;--laranja-tint:#FBEADB;
+    --bg:#F3F0EB;--card:#FFF;--suave:#FAF8F5;--borda:#E6E0D8;--borda-2:#D9D2C8;
+    --texto:#26221F;--texto-sec:#8A8178;--ok:#3E7C52;--ok-bg:#E4F0E7;--err:#B3402A;--done:#7D8A78;
+    --r:12px;--r-sm:8px;--sombra:0 1px 2px rgba(43,39,36,.06),0 4px 14px rgba(43,39,36,.06);
+    --fonte:'Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}html,body{height:100%}
+  body{margin:0;font-family:var(--fonte);color:var(--texto);display:flex;flex-direction:column;
+    background:radial-gradient(1000px 340px at 12% -8%,rgba(247,157,99,.14),transparent 60%),
+      radial-gradient(800px 300px at 95% -12%,rgba(247,157,99,.08),transparent 55%),var(--bg)}
+  .hd{background:linear-gradient(135deg,#262220,#332D28 70%,#3B332C);color:#fff;padding:16px 26px 15px;
+    display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+  .hd .logo{width:15px;height:15px;border-radius:50%;background:var(--laranja);
+    box-shadow:0 0 0 5px rgba(247,157,99,.16),0 0 18px rgba(247,157,99,.5)}
+  .hd .marca{font-size:15px;font-weight:800;letter-spacing:4px}
+  .hd .sep{width:1px;height:20px;background:rgba(255,255,255,.16)}
+  .hd .tit{font-size:15px;font-weight:350;letter-spacing:.3px;opacity:.92}
+  .hd .dir{margin-left:auto;font-size:12.5px;color:var(--laranja);font-weight:600;display:flex;align-items:center;gap:10px}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--laranja);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .hd .sair{background:rgba(255,255,255,.12);color:#EFEAE4;border:none;border-radius:8px;padding:5px 11px;
+    font:600 12px var(--fonte);cursor:pointer}
+  .hd .sair:hover{background:rgba(255,255,255,.22)}
+  .wrap{padding:18px 26px 34px;display:flex;flex-direction:column;gap:16px;max-width:1280px;width:100%}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px}
+  .st{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);padding:12px 16px 11px;box-shadow:var(--sombra)}
+  .st .l{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--texto-sec)}
+  .st .n{font-size:29px;font-weight:750;line-height:1.12;letter-spacing:-.6px;margin-top:3px}
+  .st .n small{font-size:15px;font-weight:600;color:var(--texto-sec)}
+  .st .f{font-size:11.5px;color:var(--texto-sec);margin-top:3px}
+  .st .meta{font-size:11px;font-weight:650;color:var(--laranja-escuro)}
+  .st.bom .n{color:var(--ok)}.st.ruim .n{color:var(--err)}
+  .prog{height:5px;background:var(--borda);border-radius:99px;margin-top:9px;overflow:hidden}
+  .prog i{display:block;height:100%;background:var(--laranja);border-radius:99px}
+  .grid2{display:grid;grid-template-columns:1.15fr 1fr;gap:16px}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+  .pn{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);padding:15px 18px 16px;box-shadow:var(--sombra)}
+  .pn h3{margin:0 0 13px;font-size:13px;font-weight:700;letter-spacing:.2px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .pn h3 span{font-size:11px;font-weight:500;color:var(--texto-sec)}
+  .bars{display:flex;align-items:flex-end;gap:14px;height:132px}
+  .bcol{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}
+  .bval{font-size:11.5px;font-weight:700;color:var(--grafite-2)}
+  .bfill{width:100%;max-width:44px;background:var(--laranja-tint);border:1.5px solid var(--laranja);
+    border-bottom:none;border-radius:6px 6px 0 0;min-height:3px}
+  .bfill.on{background:var(--laranja)}
+  .bfill.goal{background:transparent;border-style:dashed;border-color:var(--laranja-escuro)}
+  .blab{font-size:10.5px;color:var(--texto-sec)}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{font-size:12px;font-weight:600;background:var(--suave);border:1px solid var(--borda-2);
+    border-radius:99px;padding:4px 11px}
+  .chip.top{background:var(--laranja-tint);border-color:var(--laranja);color:var(--laranja-escuro)}
+  .chip.fora{opacity:.5;font-weight:500;text-decoration:line-through}
+  .mini{display:flex;flex-direction:column;gap:7px;margin-top:14px}
+  .mrow{display:grid;grid-template-columns:58px 1fr 46px;align-items:center;gap:9px;font-size:11.5px;color:var(--texto-sec)}
+  .trk{height:8px;background:var(--borda);border-radius:99px;overflow:hidden}
+  .trk i{display:block;height:100%;background:var(--grafite-3);border-radius:99px}
+  .mrow b{text-align:right;color:var(--texto);font-size:11.5px}
+  .months{display:grid;grid-template-columns:repeat(5,1fr);font-size:10.5px;font-weight:650;color:var(--texto-sec);
+    border-bottom:1px solid var(--borda);padding-bottom:5px;margin-bottom:9px;text-transform:uppercase;letter-spacing:.6px}
+  .months span{text-align:center}
+  .gantt{display:flex;flex-direction:column;gap:8px}
+  .g{display:grid;grid-template-columns:34px 1fr 210px;gap:10px;align-items:center}
+  @media(max-width:760px){.g{grid-template-columns:34px 1fr}.g .meta-col{display:none}}
+  .g .cod{font-size:11.5px;font-weight:750;color:var(--grafite-2)}
+  .lane{position:relative;height:26px;background:var(--suave);border:1px solid var(--borda);border-radius:7px;overflow:hidden}
+  .lane .bar2{position:absolute;top:3px;height:18px;border-radius:5px;display:flex;align-items:center;
+    padding:0 8px;font-size:11px;font-weight:600;color:#3A2A1C;white-space:nowrap;overflow:hidden;cursor:pointer}
+  .bar2.todo{background:var(--borda-2);color:var(--grafite-2)}
+  .bar2.doing{background:var(--laranja)}
+  .bar2.done{background:var(--done);color:#F2F5F1}
+  .bar2.replan{background:var(--laranja-tint);border:1px dashed var(--laranja-escuro);color:var(--laranja-escuro)}
+  .bar2.cancel{background:transparent;border:1px dashed var(--borda-2);color:var(--texto-sec);text-decoration:line-through}
+  .lane .hoje{position:absolute;top:0;bottom:0;width:2px;background:var(--err);opacity:.5}
+  .meta-col{display:flex;align-items:center;gap:7px;justify-content:flex-end}
+  .sel{font:600 11px var(--fonte);border:1px solid var(--borda-2);border-radius:7px;padding:3px 6px;
+    background:var(--card);color:var(--texto);cursor:pointer}
+  .sel:focus{outline:none;border-color:var(--laranja)}
+  .pct{width:52px;font:600 11px var(--fonte);border:1px solid var(--borda-2);border-radius:7px;padding:3px 6px;
+    background:var(--card);color:var(--texto);text-align:right}
+  .dono{font-size:11px;color:var(--texto-sec);max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .det{font-size:11.5px;color:var(--texto-sec);margin:3px 0 0 44px;display:none}
+  .det.show{display:block}
+  .det a{color:var(--laranja-escuro);text-decoration:none;font-weight:600}
+  .rod{font-size:11px;color:var(--texto-sec);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .rod code{background:var(--suave);border:1px solid var(--borda);border-radius:5px;padding:1px 6px;font-size:10.5px}
+  /* gate */
+  #gate{display:none;flex:1;align-items:center;justify-content:center;padding:30px}
+  #gate.show{display:flex}#app{display:none}#app.show{display:block}
+  .gcard{background:var(--card);border:1px solid var(--borda);border-radius:16px;padding:30px 32px;max-width:420px;
+    width:100%;box-shadow:var(--sombra);text-align:center}
+  .gcard h1{font-size:19px;margin:0 0 6px}
+  .gcard p{font-size:13px;color:var(--texto-sec);margin:0 0 18px}
+  .gcard input{width:100%;font:14px var(--fonte);padding:11px 13px;border:1px solid var(--borda-2);
+    border-radius:10px;margin-bottom:11px;outline:none}
+  .gcard input:focus{border-color:var(--laranja)}
+  .gcard button{width:100%;font:700 14px var(--fonte);background:var(--laranja);color:#3A2A1C;border:none;
+    border-radius:10px;padding:11px;cursor:pointer}
+  .gcard button:hover{background:var(--laranja-forte);color:#fff}
+  #g-msg{font-size:12.5px;margin-top:12px;min-height:18px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120%);background:var(--grafite);
+    color:#fff;font-size:13px;padding:11px 18px;border-radius:10px;transition:transform .25s;z-index:200}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head><body>
+
+<div id="gate">
+  <div class="gcard">
+    <h1>Cérebro DOT</h1>
+    <p>Meta do semestre. Entre com o seu e-mail da Dot — chega um link de acesso.</p>
+    <input id="g-email" type="email" placeholder="nome@dot.com.br" autocomplete="email">
+    <button onclick="enviarLink()">Receber link</button>
+    <div id="g-msg"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="hd">
+    <div class="logo"></div><div class="marca">DOT</div><div class="sep"></div>
+    <div class="tit">Cérebro · meta do semestre</div>
+    <div class="dir"><span class="live-dot"></span><span id="hd-mes">—</span>
+      <button class="sair" onclick="sair()">sair</button></div>
+  </div>
+
+  <div class="wrap">
+    <div class="tiles" id="tiles"></div>
+
+    <div class="grid2">
+      <div class="pn">
+        <h3>Razão de adoção <span id="ra-sub">pessoas com ≥3 notas no mês</span></h3>
+        <div class="bars" id="ra-bars"></div>
+        <div class="mini" id="criadas"></div>
+      </div>
+      <div class="pn">
+        <h3>Quem alimentou o Cérebro <span id="mes-ativos">—</span></h3>
+        <div class="chips" id="chips"></div>
+        <div class="mini" id="fora"></div>
+      </div>
+    </div>
+
+    <div class="pn">
+      <h3>Mini-projetos <span>ago → dez/2026 · clique na barra para ver o detalhe · status e % salvam na hora</span></h3>
+      <div class="months"><span>ago</span><span>set</span><span>out</span><span>nov</span><span>dez</span></div>
+      <div class="gantt" id="gantt"></div>
+    </div>
+
+    <div class="rod">
+      <span>Plano completo: <code>Meta/cerebro_plano_semestre.md</code></span>
+      <span>Métrica: <code>py cerebro_cli.py adocao</code></span>
+      <span id="rod-upd"></span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SB_URL='https://suhmrwjqlzvfjbagyvif.supabase.co', SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1aG1yd2pxbHp2ZmpiYWd5dmlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNjczOTIsImV4cCI6MjA5ODk0MzM5Mn0.uDjetAxk1Z7b__48860J1llHPH5j1hbhVTgr7K2Tj4A';
+const VAULT='Cerebro Dot';
+const sb = window.supabase.createClient(SB_URL, SB_ANON,
+  {auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}});
+
+const MESES=['2026-08','2026-09','2026-10','2026-11','2026-12'];
+const INI='2026-08-01', FIM='2026-12-31';
+const SLABEL={todo:'a fazer',doing:'andando',done:'feito',replan:'replanejado',cancel:'cancelado'};
+let PROJ=[], ADO=[], METAS={}, USER=null;
+
+const $=s=>document.getElementById(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct=v=>(v==null||isNaN(v))?'—':Math.round(v*100)+'%';
+const dias=(a,b)=>Math.round((new Date(b)-new Date(a))/86400000);
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+function mesBR(m){const [a,b]=String(m).split('-');return ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][+b-1]+'/'+a.slice(2);}
+
+/* ── auth ── */
+async function enviarLink(){
+  const email=$('g-email').value.trim();
+  if(!email){$('g-msg').textContent='Digite seu e-mail.';return;}
+  $('g-msg').style.color='var(--texto-sec)';$('g-msg').textContent='Enviando…';
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href.split('#')[0]}});
+  if(error){$('g-msg').style.color='var(--err)';$('g-msg').textContent='Erro: '+error.message;}
+  else{$('g-msg').style.color='var(--ok)';$('g-msg').textContent='✓ Link enviado! Abra o link neste dispositivo.';}
+}
+async function sair(){await sb.auth.signOut();location.reload();}
+
+/* ── dados ── */
+async function carregar(){
+  const [p,a,m]=await Promise.all([
+    sb.from('cerebro_projetos').select('*').order('ordem'),
+    sb.from('cerebro_adocao').select('*').order('mes'),
+    sb.from('cerebro_metas').select('*')]);
+  if(p.error||a.error||m.error){
+    const e=(p.error||a.error||m.error);
+    toast('Erro ao carregar: '+e.message);
+    if(/does not exist|schema cache/i.test(e.message))
+      toast('Tabelas não criadas — rode sql/schema_cerebro.sql no Supabase.');
+    return;
+  }
+  PROJ=p.data||[]; ADO=a.data||[]; METAS={}; (m.data||[]).forEach(x=>METAS[x.chave]=Number(x.valor));
+  render();
+}
+function realtime(){
+  sb.channel('rt-cerebro')
+    .on('postgres_changes',{event:'*',schema:'public',table:'cerebro_projetos'},carregar)
+    .on('postgres_changes',{event:'*',schema:'public',table:'cerebro_adocao'},carregar)
+    .subscribe();
+}
+
+/* ── métricas derivadas (mesma conta do script) ── */
+const ra=d=>(d&&d.escopo)?d.pessoas_ativas/d.escopo:null;
+const desc=d=>(d&&d.notas_criadas)?(d.notas_criadas-(d.notas_top2||0))/d.notas_criadas:null;
+const cob=d=>(d&&d.areas_total)?d.areas_ativas/d.areas_total:null;
+
+/* ── render ── */
+function render(){
+  const cur=ADO.length?ADO[ADO.length-1]:null;
+  $('hd-mes').textContent=cur?('adoção '+mesBR(cur.mes)+(cur.fechado?'':' · parcial')):'sem medição';
+  tiles(cur); barsRA(); listaCriadas(); quemEscreveu(cur); gantt();
+  const ts=[...PROJ.map(p=>p.atualizado_em),...ADO.map(a=>a.atualizado_em)].filter(Boolean).sort().pop();
+  $('rod-upd').textContent=ts?('atualizado '+new Date(ts).toLocaleString('pt-BR')):'';
+}
+
+function tile(l,n,f,extra='',bar=null,cls=''){
+  return `<div class="st ${cls}"><div class="l">${l}</div><div class="n">${n}</div>
+    <div class="f">${f}</div>${extra}
+    ${bar!=null?`<div class="prog"><i style="width:${Math.max(0,Math.min(100,bar*100))}%"></i></div>`:''}</div>`;
+}
+function tiles(d){
+  if(!d){$('tiles').innerHTML=tile('Adoção','—','sem medição ainda');return;}
+  const r=ra(d), metaRa=METAS.ra??0.85, dc=desc(d), cb=cob(d);
+  const ok=v=>v==null?'':(v?'bom':'ruim');
+  $('tiles').innerHTML=[
+    tile('Razão de adoção', pct(r)+' <small>de '+pct(metaRa)+'</small>',
+         `${d.pessoas_ativas} de ${d.escopo} pessoas · ≥3 notas`, '', r/metaRa, ok(r>=metaRa)),
+    tile('Desconcentração', pct(dc),
+         `fora de ${(d.top2||[]).join(' + ')||'—'}`,
+         `<div class="meta">meta ${pct(METAS.desconcentracao??0.35)}</div>`, dc/(METAS.desconcentracao??0.35)),
+    tile('Cobertura de área', (d.areas_ativas??'—')+' <small>/'+(d.areas_total??7)+'</small>',
+         'pastas com ≥3 notas no mês',
+         `<div class="meta">meta ${METAS.cobertura??5}/${d.areas_total??7}</div>`, cb),
+    tile('Notas criadas', d.notas_criadas??'—', 'no mês'+(d.fechado?'':' (parcial)')),
+    tile('Higiene', d.sem_autor??'—', 'notas sem criado_por',
+         `<div class="meta">meta ${METAS.sem_autor??0}</div>`, null,
+         (d.sem_autor??0)>0?'ruim':'bom'),
+    tile('Consulta', d.perguntas==null?'—':d.perguntas,
+         d.perguntas==null?'não instrumentado (C8)':'perguntas respondidas',
+         `<div class="meta">meta ${METAS.perguntas??20}/mês</div>`),
+  ].join('');
+}
+
+function barsRA(){
+  const metaRa=METAS.ra??0.85;
+  const cols=ADO.map(d=>({lab:mesBR(d.mes),v:ra(d),on:d===ADO[ADO.length-1]}));
+  cols.push({lab:'meta',v:metaRa,goal:true});
+  const max=Math.max(...cols.map(c=>c.v||0),.01);
+  $('ra-bars').innerHTML=cols.map(c=>`<div class="bcol">
+      <div class="bval">${pct(c.v)}</div>
+      <div class="bfill ${c.goal?'goal':(c.on?'on':'')}" style="height:${Math.max(3,(c.v/max)*100)}%"></div>
+      <div class="blab">${c.lab}</div></div>`).join('');
+}
+
+function listaCriadas(){
+  const max=Math.max(...ADO.map(d=>d.notas_criadas||0),1);
+  $('criadas').innerHTML=ADO.map(d=>`<div class="mrow"><span>${mesBR(d.mes)}</span>
+      <div class="trk"><i style="width:${((d.notas_criadas||0)/max)*100}%"></i></div>
+      <b>${d.notas_criadas??'—'}</b></div>`).join('');
+}
+
+function quemEscreveu(d){
+  if(!d){$('chips').innerHTML='<span class="chip">—</span>';$('fora').innerHTML='';return;}
+  $('mes-ativos').textContent=mesBR(d.mes)+(d.fechado?'':' · parcial');
+  const ativos=d.ativos||[], top2=d.top2||[];
+  const escopo=['Thomas','Vini','B2','Bruna Bispo','Jota','Ramiro','Manuella','Mauricio','Felipe','Juba'];
+  const inativos=escopo.filter(p=>!ativos.includes(p));
+  $('chips').innerHTML=ativos.map(p=>`<span class="chip ${top2.includes(p)?'top':''}">${esc(p)}</span>`).join('')
+    +inativos.map(p=>`<span class="chip fora">${esc(p)}</span>`).join('');
+  const t2=d.notas_top2||0, resto=(d.notas_criadas||0)-t2;
+  $('fora').innerHTML=`<div class="mrow"><span>${esc(top2.join('+'))||'top 2'}</span>
+      <div class="trk"><i style="width:${(t2/(d.notas_criadas||1))*100}%"></i></div><b>${t2}</b></div>
+    <div class="mrow"><span>o resto</span>
+      <div class="trk"><i style="width:${(resto/(d.notas_criadas||1))*100}%;background:var(--laranja)"></i></div>
+      <b>${resto}</b></div>`;
+}
+
+function gantt(){
+  const total=dias(INI,FIM), hoje=new Date().toISOString().slice(0,10);
+  const hj=Math.max(0,Math.min(100,(dias(INI,hoje)/total)*100));
+  $('gantt').innerHTML=PROJ.map(p=>{
+    const ini=Math.max(0,(dias(INI,p.inicio||INI)/total)*100);
+    const w=Math.max(4,((dias(p.inicio||INI,p.fim||FIM))/total)*100);
+    const atraso=(p.fim&&p.fim<hoje&&p.status!=='done'&&p.status!=='cancel');
+    const nota=p.nota_vault?`obsidian://open?vault=${encodeURIComponent(VAULT)}&file=${encodeURIComponent(p.nota_vault)}`:null;
+    return `<div class="g">
+      <div class="cod">${esc(p.codigo)}</div>
+      <div class="lane">
+        <div class="hoje" style="left:${hj}%"></div>
+        <div class="bar2 ${p.status}" style="left:${ini}%;width:${Math.min(w,100-ini)}%"
+             onclick="det('${p.codigo}')" title="${esc(p.titulo)}">
+          ${atraso?'⚠ ':''}${esc(p.titulo)}</div>
+      </div>
+      <div class="meta-col">
+        <span class="dono" title="${esc(p.dono||'')}">${esc(p.dono||'')}</span>
+        <select class="sel" onchange="mudarStatus('${p.codigo}',this.value)">
+          ${Object.keys(SLABEL).map(s=>`<option value="${s}" ${s===p.status?'selected':''}>${SLABEL[s]}</option>`).join('')}
+        </select>
+        <input class="pct" type="number" min="0" max="100" step="5" value="${p.percentual}"
+               onchange="mudarPct('${p.codigo}',this.value)">
+      </div>
+      <div class="det" id="det-${p.codigo}">
+        <b>${esc(p.objetivo)}</b><br>
+        entrega: ${esc(p.entregavel)}<br>métrica: ${esc(p.metrica)}
+        ${(p.depende_de&&p.depende_de.length)?'<br>depende de: '+esc(p.depende_de.join(', ')):''}
+        ${nota?`<br><a href="${nota}">abrir a nota no Obsidian ↗</a>`:''}
+      </div></div>`;
+  }).join('');
+}
+function det(cod){$('det-'+cod).classList.toggle('show');}
+
+/* ── escrita (só status e percentual — o resto é read-only por RLS) ── */
+async function mudarStatus(cod,v){
+  const patch={status:v}; if(v==='done')patch.percentual=100;
+  const {error}=await sb.from('cerebro_projetos').update(patch).eq('codigo',cod);
+  if(error){toast('Não salvou: '+error.message);carregar();}else{toast(cod+' → '+SLABEL[v]);}
+}
+async function mudarPct(cod,v){
+  const n=Math.max(0,Math.min(100,parseInt(v||'0',10)));
+  const {error}=await sb.from('cerebro_projetos').update({percentual:n}).eq('codigo',cod);
+  if(error){toast('Não salvou: '+error.message);carregar();}else{toast(cod+' · '+n+'%');}
+}
+
+function mostrarApp(session){USER=session.user;$('gate').classList.remove('show');$('app').classList.add('show');carregar();realtime();}
+function mostrarLogin(){$('app').classList.remove('show');$('gate').classList.add('show');}
+sb.auth.onAuthStateChange((_e,s)=>{s?mostrarApp(s):mostrarLogin();});
+(async()=>{const {data:{session}}=await sb.auth.getSession(); session?mostrarApp(session):mostrarLogin();})();
+</script>
+</body></html>
