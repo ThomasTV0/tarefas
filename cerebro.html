@@ -115,6 +115,7 @@
   .pl .dots{display:flex;gap:3px}
   .pl .dots i{width:9px;height:9px;border-radius:50%;background:var(--borda-2)}
   .pl .dots i.on{background:var(--laranja)}
+  .pl .dots i.fora{background:transparent;border:1px dashed var(--borda-2)}
   .pl .nv{font-size:11px;color:var(--texto-sec)}
   .pl.zero .nm{color:var(--texto-sec)}
   .pl.zero .nv{color:var(--err)}
@@ -182,7 +183,7 @@
 
     <div class="grid2">
       <div class="pn">
-        <h3>Razão de adoção <span id="ra-sub">pessoas com ≥3 notas no mês</span></h3>
+        <h3>Razão de adoção <span id="ra-sub">pessoas com ≥15 notas no mês</span></h3>
         <div class="bars" id="ra-bars"></div>
         <div class="mini" id="criadas"></div>
       </div>
@@ -194,7 +195,7 @@
     </div>
 
     <div class="pn">
-      <h3>Nível de uso por pessoa <span>● mês com ≥3 notas · ○ mês sem · a leitura por pessoa, não só o total</span></h3>
+      <h3>Nível de uso por pessoa <span>● mês com ≥15 notas · ○ mês sem · ◌ fora do escopo ainda</span></h3>
       <div class="pessoas" id="pessoas"></div>
     </div>
 
@@ -230,7 +231,15 @@ const sb = window.supabase.createClient(SB_URL, SB_ANON,
 
 const SLABEL={todo:'a fazer',doing:'andando',done:'feito',replan:'replanejado',cancel:'cancelado'};
 const TLABEL={todo:'a fazer',doing:'andando',blocked:'bloqueado',done:'feito'};
-const ESCOPO=['Thomas','Vini','B2','Bruna Bispo','Jota','Ramiro','Manuella','Mauricio','Felipe','Giuliano'];
+/* escopo com MÊS DE ENTRADA — quem entra depois não pesa contra os meses anteriores */
+const ESCOPO=[
+  {n:'Thomas',de:'2026-04'},{n:'Vini',de:'2026-04'},{n:'B2',de:'2026-04'},
+  {n:'Bruna Bispo',de:'2026-04'},{n:'Jota',de:'2026-04'},{n:'Ramiro',de:'2026-04'},
+  {n:'Manuella',de:'2026-04'},{n:'Mauricio',de:'2026-04'},{n:'Felipe',de:'2026-04'},
+  {n:'Giuliano',de:'2026-04'},{n:'João Sevestrin',de:'2026-04'},
+  {n:'Talita',de:'2026-08'},{n:'Gustavo',de:'2026-08'},
+];
+const MIN_NOTAS=15;   // corte de "usa" (era 3 até 29/07/2026)
 let PROJ=[], ADO=[], TKS=[], USER=null;
 
 const $=s=>document.getElementById(s);
@@ -299,10 +308,10 @@ function tiles(d){
   if(!d){$('tiles').innerHTML=tile('Adoção','—','sem medição ainda');return;}
   const r=ra(d), dc=desc(d);
   $('tiles').innerHTML=[
-    tile('Razão de adoção', pct(r), `${d.pessoas_ativas} de ${d.escopo} pessoas · ≥3 notas`, '', r),
+    tile('Razão de adoção', pct(r), `${d.pessoas_ativas} de ${d.escopo} pessoas · ≥${MIN_NOTAS} notas`, '', r),
     tile('Desconcentração', pct(dc), `fora de ${(d.top2||[]).join(' + ')||'—'}`, '', dc),
     tile('Cobertura de área', (d.areas_ativas??'—')+' <small>/'+(d.areas_total??7)+'</small>',
-         'pastas com ≥3 notas no mês'),
+         'pastas com ≥3 notas no mês (esta continua em 3)'),
     tile('Notas criadas', d.notas_criadas??'—', 'no mês'+(d.fechado?'':' (parcial)')),
     tile('Sem autor', d.sem_autor??'—', 'notas sem criado_por', '', null,
          (d.sem_autor??0)>0?'ruim':''),
@@ -346,11 +355,17 @@ function quemEscreveu(d){
 /* nível de uso por pessoa: matriz pessoa × mês (● = mês com ≥3 notas) */
 function pessoas(){
   const meses=ADO.map(d=>d.mes);
-  const linhas=ESCOPO.map(nome=>{
-    const on=meses.map(m=>{const d=ADO.find(x=>x.mes===m);return !!(d&&(d.ativos||[]).includes(nome));});
+  const ultimo=meses[meses.length-1]||'2026-04';
+  const linhas=ESCOPO.filter(p=>p.de<=ultimo).map(({n:nome,de})=>{
+    const on=meses.map(m=>{
+      if(de>m) return null;                       // ainda não estava no escopo
+      const d=ADO.find(x=>x.mes===m);
+      return !!(d&&(d.ativos||[]).includes(nome));
+    });
     const n=on.filter(Boolean).length, ult=on[on.length-1], pen=on[on.length-2];
     let nv;
-    if(n===0) nv='nunca usou';
+    if(on.every(o=>o===null)) nv='entra em '+mesBR(de);
+    else if(n===0) nv='nunca usou';
     else if(n===meses.length) nv='constante';
     else if(ult&&!pen) nv='entrou agora';
     else if(!ult&&pen) nv='parou';
@@ -360,7 +375,7 @@ function pessoas(){
   }).sort((a,b)=>b.n-a.n||a.nome.localeCompare(b.nome));
   $('pessoas').innerHTML=linhas.map(l=>`<div class="pl ${l.zero?'zero':''}">
       <span class="nm">${esc(l.nome)}</span>
-      <span class="dots">${l.on.map(o=>`<i class="${o?'on':''}"></i>`).join('')}</span>
+      <span class="dots">${l.on.map(o=>`<i class="${o===null?'fora':(o?'on':'')}"></i>`).join('')}</span>
       <span class="nv">${esc(l.nv)}</span></div>`).join('');
 }
 
