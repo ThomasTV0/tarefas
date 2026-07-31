@@ -400,7 +400,17 @@ async function alternarFechado(){
 }
 
 /* ── render ── */
-function trocarMes(m){MES=m;render();}
+function trocarMes(m){
+  if(m==='__novo'){
+    const sug=proximoMes(mesAtual());
+    const r=(prompt('Qual mês? (YYYY-MM)',sug)||'').trim();
+    if(!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(r)){render();if(r)toast('Mês inválido — use YYYY-MM.');return;}
+    MES=r;
+  } else MES=m;
+  render();
+}
+function proximoMes(m){let [a,b]=m.split('-').map(Number);b++;if(b===13){b=1;a++;}
+  return a+'-'+String(b).padStart(2,'0');}
 function limparFiltros(){$('f-busca').value='';$('f-cliente').value='';$('f-status').value='';
   $('f-controle').checked=false;render();}
 
@@ -419,9 +429,10 @@ function filtroPassa(c,it){
 function render(){
   // seletor de mês
   const meses=mesesConhecidos(), atual=mesAtual();
-  const lista=meses.includes(atual)?meses:[...meses,atual].sort();
+  const lista=[...new Set([...meses,atual,MES])].sort();
   $('f-mes').innerHTML=lista.map(m=>`<option value="${m}" ${m===MES?'selected':''}>${mesBR(m)}${
-      CICLOS.find(c=>c.mes===m&&c.fechado)?' ✓':''}</option>`).join('');
+      CICLOS.find(c=>c.mes===m&&c.fechado)?' ✓':''}</option>`).join('')
+    +'<option value="__novo">+ outro mês…</option>';
   const cls=[...new Set(CONTAS.map(c=>c.cliente))];
   const fcAtual=$('f-cliente').value;
   $('f-cliente').innerHTML='<option value="">Cliente</option>'+
