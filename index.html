@@ -54,7 +54,33 @@
   .bar input[type=text],.bar select{font:13px var(--fonte);padding:7px 11px;border:1px solid var(--borda-2);
     border-radius:9px;background:var(--card);color:var(--texto);outline:none;transition:border-color .15s,box-shadow .15s}
   .bar input[type=text]:focus,.bar select:focus{border-color:var(--laranja);box-shadow:0 0 0 3px rgba(247,157,99,.18)}
-  .bar input#f-busca{min-width:220px}
+  .bar input#f-busca{min-width:176px}
+  /* — navegação por status + modo foco — */
+  .snav{display:flex;gap:3px;background:rgba(43,39,36,.055);border:1px solid var(--borda);padding:3px;border-radius:10px}
+  .sp{font:600 12px var(--fonte);border:none;background:transparent;color:var(--texto-sec);padding:6px 10px;
+    border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;
+    transition:background .15s,color .15s,box-shadow .15s}
+  .sp:hover{background:rgba(255,255,255,.8);color:var(--texto)}
+  .sp.on{background:var(--card);color:var(--texto);box-shadow:var(--sombra)}
+  .sp .sn{font-size:10.5px;font-weight:800;background:rgba(43,39,36,.07);border-radius:8px;padding:0 6px;
+    min-width:19px;text-align:center}
+  .sp.on .sn{background:var(--laranja-tint);color:var(--laranja-escuro)}
+  .sp.drop{background:var(--laranja-tint);color:var(--laranja-escuro);box-shadow:inset 0 0 0 2px var(--laranja)}
+  .sd{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+  .sd-todo{background:var(--grafite-3)}.sd-doing{background:var(--laranja-forte)}
+  .sd-blocked{background:var(--err)}.sd-done{background:var(--ok)}
+  .col-head.clik{cursor:pointer;border-radius:12px}
+  .col-head.clik:hover{background:rgba(255,255,255,.75)}
+  .col-volta{margin-left:6px;font:600 11px var(--fonte);border:1px solid var(--borda-2);background:var(--card);
+    color:var(--texto-sec);border-radius:7px;padding:3px 9px;cursor:pointer}
+  .col-volta:hover{border-color:var(--laranja);color:var(--laranja-escuro)}
+  .board.foco{grid-template-columns:1fr!important;flex:0 0 auto;min-height:auto;padding-bottom:34px}
+  .board.foco .coluna{max-height:none;background:transparent;border-color:transparent}
+  .board.foco .col-head{padding:2px 6px 12px}
+  .board.foco .col-tit{font-size:15px}
+  .board.foco .lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(292px,1fr));gap:11px;
+    padding:0 4px 6px;overflow:visible;max-height:none;align-content:start}
+  .board.foco .vazio{grid-column:1/-1}
   .bar .chkf{font-size:12.5px;color:var(--texto-sec);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
   .bar .chkf input{accent-color:var(--laranja-forte)}.bar .fim{margin-left:auto}
   .board{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:18px 26px 26px;flex:1;min-height:0;align-items:start}
@@ -188,7 +214,8 @@
     <div class="st st-open"><div class="n" id="c-abertas">0</div><div class="l">Abertas</div></div>
   </div>
   <div class="bar">
-    <button class="btn btn-p" onclick="novo('todo')">+ Nova tarefa</button>
+    <div class="snav" id="snav"></div>
+    <button class="btn btn-p" onclick="novo('todo')">+ Nova</button>
     <input type="text" id="f-busca" placeholder="buscar…" oninput="render()">
     <select id="f-area" onchange="render()"><option value="">Área</option></select>
     <select id="f-projeto" onchange="render()"><option value="">Projeto</option></select>
@@ -201,7 +228,8 @@
   </div>
   <div class="board" id="board"></div>
   <div class="rodape"><span class="mini"></span>
-    <span><b>Dot Investimentos</b> · <span id="rod-n">0</span> tarefa(s) · Supabase (realtime) · <span id="rod-uid"></span></span>
+    <span><b>Dot Investimentos</b> · <span id="rod-n">0</span> tarefa(s) · Supabase (realtime) ·
+      <b>1–4</b> abre um status, <b>0</b> volta ao quadro, <b>N</b> nova · <span id="rod-uid"></span></span>
   </div>
 </div>
 
@@ -251,6 +279,9 @@ const PRIO={critica:['▲▲','Crítica'],alta:['▲','Alta'],media:['•','Méd
 const PESO={critica:0,alta:1,media:2,baixa:3};
 const STATUS=['todo','doing','blocked','done'];
 const SLABEL={todo:'A fazer',doing:'Em andamento',blocked:'Bloqueado',done:'Feito'};
+const SCURTO={todo:'A fazer',doing:'Andamento',blocked:'Bloqueado',done:'Feito'};
+const TECLA={'1':'todo','2':'doing','3':'blocked','4':'done'};
+let FOCO=(()=>{try{const v=localStorage.getItem('foco');return STATUS.includes(v)?v:null;}catch(e){return null;}})();
 const DIAS=['segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado','domingo'];
 const MES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
@@ -391,23 +422,54 @@ function opts(sel,vals){
   vals.forEach(v=>{const x=document.createElement('option');x.value=v;x.textContent=v;sel.appendChild(x);});
   sel.value=atual;
 }
+/* foco: clicar num status abre só ele, em grade — sem rolar cada coluna */
+function focar(s){
+  FOCO=(!s||FOCO===s)?null:s;
+  try{ FOCO?localStorage.setItem('foco',FOCO):localStorage.removeItem('foco'); }catch(e){}
+  render(); window.scrollTo({top:0,behavior:'smooth'});
+}
+function snavHTML(vis,feito){
+  let h=`<button class="sp${FOCO?'':' on'}" onclick="focar(null)" title="Quadro inteiro (tecla 0)">▦</button>`;
+  for(const s of STATUS){
+    if(s==='done'&&!feito)continue;
+    h+=`<button class="sp${FOCO===s?' on':''}" data-status="${s}" onclick="focar('${s}')"
+      ondragover="pillOver(event)" ondragleave="pillLeave(event)" ondrop="pillDrop(event)"
+      title="Ver só ${SLABEL[s]} — ou arraste um card aqui para mover">
+      <span class="sd sd-${s}"></span>${SCURTO[s]}<span class="sn">${vis[s].length}</span></button>`;
+  }
+  return h;
+}
 function render(){
   const arr=Object.values(TAREFAS);
   opts($('f-area'),[...new Set(arr.map(t=>t.area).filter(Boolean))].sort());
   opts($('f-projeto'),[...new Set(arr.map(t=>t.projeto).filter(Boolean))].sort());
   opts($('f-cliente'),[...new Set(arr.map(t=>t.cliente).filter(Boolean))].sort());
   const feito=$('f-feito').checked;
-  const board=$('board'); board.classList.toggle('sem-done',!feito);
-  let html='';
+  if(FOCO&&(!STATUS.includes(FOCO)||(FOCO==='done'&&!feito))){FOCO=null;try{localStorage.removeItem('foco');}catch(e){}}
+  const grupo={},visivel={};
   for(const s of STATUS){
-    if(s==='done'&&!feito)continue;
-    const na=arr.filter(t=>t.status===s).sort((a,b)=>cmp(ordKey(a),ordKey(b)));
-    const vis=na.filter(t=>filtroPass(t));
-    const cards=vis.map(cardHTML).join('') || '<div class="vazio">Arraste tarefas para cá</div>';
+    grupo[s]=arr.filter(t=>t.status===s).sort((a,b)=>cmp(ordKey(a),ordKey(b)));
+    visivel[s]=grupo[s].filter(t=>filtroPass(t));
+  }
+  $('snav').innerHTML=snavHTML(visivel,feito);
+  const board=$('board');
+  board.classList.toggle('foco',!!FOCO);
+  board.classList.toggle('sem-done',!feito&&!FOCO);
+  let html='';
+  for(const s of (FOCO?[FOCO]:STATUS)){
+    if(s==='done'&&!feito&&!FOCO)continue;
+    const na=grupo[s], vis=visivel[s];
+    const cards=vis.map(cardHTML).join('') ||
+      `<div class="vazio">${FOCO?'Nada em '+SLABEL[s].toLowerCase()+'.':'Arraste tarefas para cá'}</div>`;
+    const cnt=(vis.length===na.length)?na.length:`${vis.length} de ${na.length}`;
+    const volta=FOCO?`<button class="col-volta" onclick="event.stopPropagation();focar(null)"
+      title="Voltar ao quadro (Esc)">← quadro</button>`:'';
     html+=`<div class="coluna col-${s}" data-status="${s}">
-      <div class="col-head"><span class="col-dot"></span><span class="col-tit">${SLABEL[s]}</span>
-      <span class="col-cnt">${na.length}</span>
-      <button class="col-add" onclick="novo('${s}')" title="Nova tarefa aqui">+</button></div>
+      <div class="col-head clik" onclick="focar('${s}')"
+        title="${FOCO?'Voltar ao quadro':'Abrir só '+SLABEL[s]}">
+      <span class="col-dot"></span><span class="col-tit">${SLABEL[s]}</span>
+      <span class="col-cnt">${cnt}</span>${volta}
+      <button class="col-add" onclick="event.stopPropagation();novo('${s}')" title="Nova tarefa aqui">+</button></div>
       <div class="lista" data-status="${s}" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">${cards}</div>
     </div>`;
   }
@@ -431,6 +493,14 @@ function dragOver(e){e.preventDefault();e.currentTarget.classList.add('drop');}
 function dragLeave(e){e.currentTarget.classList.remove('drop');}
 function drop(e){e.preventDefault();e.currentTarget.classList.remove('drop');
   const st=e.currentTarget.dataset.status;if(_drag&&TAREFAS[_drag]&&TAREFAS[_drag].status!==st)mover(_drag,st);_drag=null;}
+/* no modo foco, o alvo de arrastar são as abas de status */
+function pillOver(e){if(!_drag)return;e.preventDefault();e.currentTarget.classList.add('drop');}
+function pillLeave(e){e.currentTarget.classList.remove('drop');}
+function pillDrop(e){e.preventDefault();e.currentTarget.classList.remove('drop');
+  const st=e.currentTarget.dataset.status;
+  if(_drag&&TAREFAS[_drag]&&TAREFAS[_drag].status!==st){const t=TAREFAS[_drag];mover(_drag,st);
+    toast(`“${t.titulo.slice(0,32)}” → ${SLABEL[st]}`);}
+  _drag=null;}
 
 /* ── modal ── */
 function modalAberto(){return $('modal').classList.contains('show');}
@@ -469,10 +539,13 @@ function toast(msg,label,fn){const el=$('toast'),b=$('toast-btn');$('toast-msg')
 
 /* ── atalhos / backdrop ── */
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){fecharModal();return;}
+  if(e.key==='Escape'){ if(modalAberto())fecharModal(); else if(FOCO)focar(null); return;}
   const tag=(document.activeElement||{}).tagName||'';
   if(modalAberto()&&e.key==='Enter'&&tag!=='TEXTAREA'&&tag!=='BUTTON'){e.preventDefault();salvarModal();return;}
-  if(!modalAberto()&&!['INPUT','TEXTAREA','SELECT'].includes(tag)&&(e.key==='n'||e.key==='N')){e.preventDefault();novo('todo');}
+  if(modalAberto()||['INPUT','TEXTAREA','SELECT'].includes(tag))return;
+  if(e.key==='n'||e.key==='N'){e.preventDefault();novo('todo');return;}
+  if(e.key==='0'){e.preventDefault();focar(null);return;}
+  if(TECLA[e.key]){e.preventDefault();focar(TECLA[e.key]);}
 });
 document.addEventListener('mousedown',e=>{_downBackdrop=!!(e.target&&e.target.id==='modal');});
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='modal'&&_downBackdrop)fecharModal();});
