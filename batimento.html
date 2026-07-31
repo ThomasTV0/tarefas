@@ -64,7 +64,37 @@
     border-radius:9px;background:var(--card);color:var(--texto);outline:none;transition:border-color .15s,box-shadow .15s}
   .bar input[type=text]:focus,.bar select:focus{border-color:var(--laranja);box-shadow:0 0 0 3px rgba(247,157,99,.18)}
   .bar input#f-busca{min-width:190px}
-  .bar select#f-mes{font-weight:700}
+  /* seletor de mês (ano + grade de meses) */
+  .mesbox{position:relative}
+  .mesbtn{display:flex;align-items:center;gap:9px;font:700 13px var(--fonte);cursor:pointer;
+    background:var(--card);border:1px solid var(--borda-2);border-radius:9px;padding:7px 13px;color:var(--texto)}
+  .mesbtn:hover{border-color:var(--laranja)}
+  .mesbtn.on{border-color:var(--laranja);box-shadow:0 0 0 3px rgba(247,157,99,.18)}
+  .mesbtn .cal{font-size:12px;opacity:.7}
+  .mesbtn .cx{font-size:10px;color:var(--texto-sec)}
+  .mespop{position:absolute;top:calc(100% + 7px);left:0;z-index:200;display:none;width:266px;
+    background:var(--card);border:1px solid var(--borda);border-radius:13px;box-shadow:var(--sombra-up);padding:11px}
+  .mespop.show{display:block}
+  .mesnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+  .mesnav b{font-size:14px;font-weight:750;letter-spacing:.3px}
+  .mesnav button{width:26px;height:26px;border:none;border-radius:7px;background:transparent;
+    color:var(--texto-sec);font-size:15px;cursor:pointer}
+  .mesnav button:hover{background:var(--suave);color:var(--laranja-escuro)}
+  .mesgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+  .mesgrid button{position:relative;font:600 12px var(--fonte);border:1px solid transparent;border-radius:8px;
+    padding:9px 0;background:var(--suave);color:var(--texto);cursor:pointer}
+  .mesgrid button:hover{border-color:var(--laranja)}
+  .mesgrid button.tem{background:var(--laranja-tint);color:var(--laranja-escuro);font-weight:700}
+  .mesgrid button.sel{background:var(--laranja);color:#3A2A1C;font-weight:750}
+  .mesgrid button.hoje::after{content:'';position:absolute;left:50%;bottom:4px;transform:translateX(-50%);
+    width:4px;height:4px;border-radius:50%;background:var(--grafite-3)}
+  .mesgrid button.sel.hoje::after{background:#3A2A1C}
+  .mesgrid button .lacrado{position:absolute;top:1px;right:4px;font-size:8.5px;color:var(--ok)}
+  .mespop .rodp{display:flex;justify-content:space-between;align-items:center;margin-top:9px;
+    font-size:10.5px;color:var(--texto-sec)}
+  .mespop .rodp button{font:600 11px var(--fonte);border:1px solid var(--borda-2);background:transparent;
+    color:var(--grafite-2);border-radius:20px;padding:4px 10px;cursor:pointer}
+  .mespop .rodp button:hover{border-color:var(--laranja);color:var(--laranja-escuro)}
   .bar .chkf{font-size:12.5px;color:var(--texto-sec);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
   .bar .chkf input{accent-color:var(--laranja-forte)}
   .bar .fim{margin-left:auto;display:flex;gap:9px;align-items:center}
@@ -226,7 +256,20 @@
   <div class="stats" id="tiles"></div>
 
   <div class="bar">
-    <select id="f-mes" onchange="trocarMes(this.value)" title="mês do fechamento"></select>
+    <span class="mesbox">
+      <button class="mesbtn" id="btn-mes" onclick="alternarPicker(event)" title="mês do ciclo">
+        <span class="cal">&#9638;</span><span id="btn-mes-txt">&#8212;</span><span class="cx">&#9662;</span></button>
+      <div class="mespop" id="mespop">
+        <div class="mesnav">
+          <button onclick="mudarAno(-1)" title="ano anterior">&#8249;</button>
+          <b id="pick-ano">2026</b>
+          <button onclick="mudarAno(1)" title="ano seguinte">&#8250;</button>
+        </div>
+        <div class="mesgrid" id="pick-grid"></div>
+        <div class="rodp"><span>laranja = tem contas &middot; &#10003; fechado</span>
+          <button onclick="trocarMes(mesAtual());fecharPicker()">mês atual</button></div>
+      </div>
+    </span>
     <button class="btn btn-p" onclick="abrirMontar()">Montar o mês</button>
     <input type="text" id="f-busca" placeholder="buscar conta, carteira…" oninput="render()">
     <select id="f-cliente" onchange="render()"><option value="">Cliente</option></select>
@@ -295,16 +338,17 @@ const STATUS=['nao','andamento','aguardando','batido'];
 const SLABEL={nao:'a bater',andamento:'em batimento',aguardando:'aguard. extrato',batido:'batido'};
 const MES_NOME=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro',
                 'outubro','novembro','dezembro'];
+const MES_CURTO=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
 let CONTAS=[], ITENS=[], CICLOS=[], MES=null, USER=null;
 let SEL=new Set(), ABERTOS=null, TREE_OPEN=new Set(), _toastTimer=null, _downBackdrop=false;
+let ANO_PICK=new Date().getFullYear();
 
 const $=s=>document.getElementById(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function mesAtual(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
 function mesBR(m){const [a,b]=String(m).split('-');return MES_NOME[+b-1]+'/'+a;}
-function mesCurto(m){const [a,b]=String(m).split('-');
-  return ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][+b-1]+'/'+a.slice(2);}
+function mesCurto(m){const [a,b]=String(m).split('-');return MES_CURTO[+b-1]+'/'+a.slice(2);}
 function mesAnterior(m){let [a,b]=m.split('-').map(Number);b--;if(b===0){b=12;a--;}
   return a+'-'+String(b).padStart(2,'0');}
 function toast(msg,label,fn){const el=$('toast'),b=$('toast-btn');$('toast-msg').textContent=msg;
@@ -400,17 +444,36 @@ async function alternarFechado(){
 }
 
 /* ── render ── */
-function trocarMes(m){
-  if(m==='__novo'){
-    const sug=proximoMes(mesAtual());
-    const r=(prompt('Qual mês? (YYYY-MM)',sug)||'').trim();
-    if(!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(r)){render();if(r)toast('Mês inválido — use YYYY-MM.');return;}
-    MES=r;
-  } else MES=m;
-  render();
+function trocarMes(m){MES=m;ANO_PICK=+m.slice(0,4);render();}
+
+/* ── seletor de mês: ano + grade de 12 meses ── */
+function alternarPicker(e){
+  if(e)e.stopPropagation();
+  const p=$('mespop');
+  if(p.classList.contains('show')){fecharPicker();return;}
+  ANO_PICK=+MES.slice(0,4);
+  p.classList.add('show'); $('btn-mes').classList.add('on'); renderPicker();
 }
-function proximoMes(m){let [a,b]=m.split('-').map(Number);b++;if(b===13){b=1;a++;}
-  return a+'-'+String(b).padStart(2,'0');}
+function fecharPicker(){$('mespop').classList.remove('show');$('btn-mes').classList.remove('on');}
+function mudarAno(d){ANO_PICK+=d;renderPicker();}
+function renderPicker(){
+  $('pick-ano').textContent=ANO_PICK;
+  const comItens=new Set(ITENS.map(i=>i.mes));
+  const fechados=new Set(CICLOS.filter(c=>c.fechado).map(c=>c.mes));
+  const hoje=mesAtual();
+  $('pick-grid').innerHTML=MES_CURTO.map((nm,i)=>{
+    const m=ANO_PICK+'-'+String(i+1).padStart(2,'0');
+    const cls=[comItens.has(m)?'tem':'', m===MES?'sel':'', m===hoje?'hoje':''].filter(Boolean).join(' ');
+    const n=ITENS.filter(x=>x.mes===m).length;
+    return `<button class="${cls}" data-mes="${m}" onclick="trocarMes(this.dataset.mes);fecharPicker()"
+      title="${nm}/${ANO_PICK}${n?' · '+n+' conta(s)':' · vazio'}">${nm}${
+      fechados.has(m)?'<span class="lacrado">✓</span>':''}</button>`;
+  }).join('');
+}
+document.addEventListener('click',e=>{
+  const p=$('mespop');
+  if(p&&p.classList.contains('show')&&!e.target.closest('.mesbox'))fecharPicker();
+});
 function limparFiltros(){$('f-busca').value='';$('f-cliente').value='';$('f-status').value='';
   $('f-controle').checked=false;render();}
 
@@ -427,12 +490,9 @@ function filtroPassa(c,it){
 }
 
 function render(){
-  // seletor de mês
-  const meses=mesesConhecidos(), atual=mesAtual();
-  const lista=[...new Set([...meses,atual,MES])].sort();
-  $('f-mes').innerHTML=lista.map(m=>`<option value="${m}" ${m===MES?'selected':''}>${mesBR(m)}${
-      CICLOS.find(c=>c.mes===m&&c.fechado)?' ✓':''}</option>`).join('')
-    +'<option value="__novo">+ outro mês…</option>';
+  // seletor de mês (botão + popover de ano/mês)
+  $('btn-mes-txt').textContent=mesBR(MES);
+  if($('mespop').classList.contains('show'))renderPicker();
   const cls=[...new Set(CONTAS.map(c=>c.cliente))];
   const fcAtual=$('f-cliente').value;
   $('f-cliente').innerHTML='<option value="">Cliente</option>'+
@@ -451,6 +511,7 @@ function render(){
   tiles(itens);
 
   if(!itens.length){
+    const meses=mesesConhecidos();
     $('board').innerHTML=`<div class="vazio">Nenhuma conta selecionada para <b>${mesBR(MES)}</b>.<br>
       Clique em <b>Montar o mês</b> e escolha cliente → carteira → contas que você vai bater.
       ${meses.length?`<br><span style="font-size:12px">Atalho: dentro do montador, <b>copiar do mês anterior</b>.</span>`:''}</div>`;
@@ -720,7 +781,7 @@ async function salvarMontagem(){
 /* ── backdrop / atalhos ── */
 document.addEventListener('mousedown',e=>{_downBackdrop=!!(e.target&&e.target.id==='modal');});
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='modal'&&_downBackdrop)fecharModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){fecharModal();fecharPicker();}});
 
 /* ── boot ── */
 function mostrarApp(session){
