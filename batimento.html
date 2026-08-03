@@ -113,6 +113,18 @@
   .cli-head .prog{flex:1;max-width:220px;margin:0}
   .cli-head .pc{font-size:12px;font-weight:700;color:var(--grafite-2);min-width:34px;text-align:right}
   .cli-body{display:none}.cli.open .cli-body{display:block}
+  .grp{border-top:1px solid var(--borda)}
+  .grp:first-child{border-top:none}
+  .grp-head{display:flex;align-items:center;gap:10px;padding:9px 16px 8px;cursor:pointer;user-select:none;
+    background:linear-gradient(90deg,rgba(247,157,99,.10),transparent 70%)}
+  .grp-head:hover{background:linear-gradient(90deg,rgba(247,157,99,.18),transparent 70%)}
+  .grp-head .seta{font-size:9px;color:var(--texto-sec);width:8px}
+  .grp-head .nm{font-size:12.5px;font-weight:750;letter-spacing:.2px;color:var(--grafite-2)}
+  .grp-head .cnt{font-size:10.5px;font-weight:700;color:var(--texto-sec);background:rgba(43,39,36,.06);
+    border-radius:9px;padding:1px 8px}
+  .grp-head .prog{flex:1;max-width:150px;margin:0;height:4px}
+  .grp-head .pc{font-size:11px;font-weight:700;color:var(--grafite-3);min-width:32px;text-align:right}
+  .grp-body{display:none}.grp.open .grp-body{display:block}
   .cart{border-bottom:1px solid var(--suave)}
   .cart:last-child{border-bottom:none}
   .cart-head{display:flex;align-items:center;gap:9px;padding:8px 16px 7px;background:var(--suave)}
@@ -334,6 +346,12 @@ const SB_URL='https://suhmrwjqlzvfjbagyvif.supabase.co', SB_ANON='eyJhbGciOiJIUz
 const sb = window.supabase.createClient(SB_URL, SB_ANON,
   {auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}});
 
+/* subdivisão por titular (cliente → grupo → carteira): vem de catalogo_batimento.GRUPOS,
+   injetado por deploy_batimento.py — mesma fonte do CLI e do seed. */
+const GRUPOS={"Vito Ne BR": "Vito Ne", "Vito Ne Global": "Vito Ne", "Hebbron Investment": "Vito Ne", "Copeland Traders Inc": "Vito Ne", "Vito Na BR": "Vito Na", "Vito Na Global": "Vito Na", "Vito Mar BR": "Vito Mar", "Vito Mar Global": "Vito Mar", "Vito Mar - Filhos": "Vito Mar", "Power Rangers": "Vito Mar", "Vito Mau BR": "Vito Mau", "Vito Mau Global": "Vito Mau", "Vito Mau - Filhos": "Vito Mau", "Santa Mônica": "Vito Mau", "Vito Ro BR": "Vito Ro", "Vito Ro Global": "Vito Ro", "Vito Ro - Familia": "Vito Ro", "TJ Investments": "Vito Ro", "Maropar - Ambar": "Maropar (os 5)", "Maropar - Bpool": "Maropar (os 5)", "Maropar - Equal": "Maropar (os 5)", "Maropar - Lead": "Maropar (os 5)", "Maropar - Provence": "Maropar (os 5)"}, ORDEM_GRUPO=["Vito Ne", "Vito Na", "Vito Mar", "Vito Mau", "Vito Ro", "Maropar (os 5)"];
+const grupoDe=c=>GRUPOS[c.carteira]||'';
+const ordGrupo=g=>{const i=ORDEM_GRUPO.indexOf(g);return i<0?99:i;};
+
 const STATUS=['nao','andamento','aguardando','batido'];
 const SLABEL={nao:'a bater',andamento:'em batimento',aguardando:'aguard. extrato',batido:'batido'};
 const MES_NOME=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro',
@@ -341,7 +359,8 @@ const MES_NOME=['janeiro','fevereiro','março','abril','maio','junho','julho','a
 const MES_CURTO=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
 let CONTAS=[], ITENS=[], CICLOS=[], MES=null, USER=null;
-let SEL=new Set(), ABERTOS=null, TREE_OPEN=new Set(), _toastTimer=null, _downBackdrop=false;
+let SEL=new Set(), ABERTOS=null, ABERTOS_G=null, TREE_OPEN=new Set(), TREE_OPEN_G=new Set();
+let _toastTimer=null, _downBackdrop=false;
 let ANO_PICK=new Date().getFullYear();
 
 const $=s=>document.getElementById(s);
@@ -479,7 +498,7 @@ function limparFiltros(){$('f-busca').value='';$('f-cliente').value='';$('f-stat
 
 function filtroPassa(c,it){
   const q=($('f-busca').value||'').toLowerCase().trim();
-  if(q){const hay=[c.conta,c.carteira,c.cliente,c.id_conta,it.obs].filter(Boolean).join(' ').toLowerCase();
+  if(q){const hay=[c.conta,c.carteira,c.cliente,grupoDe(c),c.id_conta,it.obs].filter(Boolean).join(' ').toLowerCase();
     if(hay.indexOf(q)<0)return false;}
   const fc=$('f-cliente').value; if(fc&&c.cliente!==fc)return false;
   const fs=$('f-status').value;
@@ -519,40 +538,68 @@ function render(){
     return;
   }
 
-  // agrupa cliente → carteira, na ordem do catálogo
+  // agrupa cliente → grupo (titular) → carteira, na ordem do catálogo
   const porCliente=new Map();
   itens.map(it=>[catConta(it.id_conta),it]).filter(([c])=>c)
     .sort((a,b)=>a[0].ordem-b[0].ordem)
     .forEach(([c,it])=>{
       if(!porCliente.has(c.cliente))porCliente.set(c.cliente,new Map());
-      const m=porCliente.get(c.cliente);
+      const g=porCliente.get(c.cliente), gk=grupoDe(c);
+      if(!g.has(gk))g.set(gk,new Map());
+      const m=g.get(gk);
       if(!m.has(c.carteira))m.set(c.carteira,[]);
       m.get(c.carteira).push([c,it]);
     });
 
-  // estado inicial dos grupos: abre quem ainda tem conta pendente
+  // estado inicial: abre cliente/grupo que ainda tem conta pendente
+  const paresDe=m=>[...m.values()].flatMap(x=>x instanceof Map?[...x.values()].flat():x);
   if(ABERTOS===null){
-    ABERTOS=new Set();
-    for(const [cliente,carts] of porCliente)
-      if([...carts.values()].flat().some(([,it])=>it.status!=='batido'))ABERTOS.add(cliente);
+    ABERTOS=new Set(); ABERTOS_G=new Set();
+    for(const [cliente,grupos] of porCliente){
+      if(paresDe(grupos).some(([,it])=>it.status!=='batido'))ABERTOS.add(cliente);
+      for(const [gk,carts] of grupos)
+        if(gk && paresDe(carts).some(([,it])=>it.status!=='batido'))ABERTOS_G.add(cliente+'|'+gk);
+    }
   }
 
+  const blocoCarteiras=(carts)=>{
+    let out='';
+    for(const [carteira,pares] of carts){
+      const pv=pares.filter(([c,it])=>filtroPassa(c,it));
+      if(!pv.length)continue;
+      const cok=pares.filter(([,it])=>it.status==='batido').length;
+      out+=`<div class="cart"><div class="cart-head"><span class="nm">${esc(carteira)}</span>
+        <span class="cnt ${cok===pares.length?'ok':''}">${cok}/${pares.length}</span></div>
+        ${pv.map(([c,it])=>linha(c,it,lac)).join('')}</div>`;
+    }
+    return out;
+  };
+
   let html='';
-  for(const [cliente,carts] of porCliente){
-    const todos=[...carts.values()].flat();
+  for(const [cliente,grupos] of porCliente){
+    const todos=paresDe(grupos);
     const vis=todos.filter(([c,it])=>filtroPassa(c,it));
     if(!vis.length)continue;
     const ok=todos.filter(([,it])=>it.status==='batido').length, n=todos.length;
     const pc=Math.round(ok/n*100);
     const aberto=ABERTOS.has(cliente);
     let corpo='';
-    for(const [carteira,pares] of carts){
-      const pv=pares.filter(([c,it])=>filtroPassa(c,it));
-      if(!pv.length)continue;
-      const cok=pares.filter(([,it])=>it.status==='batido').length;
-      corpo+=`<div class="cart"><div class="cart-head"><span class="nm">${esc(carteira)}</span>
-        <span class="cnt ${cok===pares.length?'ok':''}">${cok}/${pares.length}</span></div>
-        ${pv.map(([c,it])=>linha(c,it,lac)).join('')}</div>`;
+    const chaves=[...grupos.keys()].sort((a,b)=>ordGrupo(a)-ordGrupo(b)||a.localeCompare(b));
+    for(const gk of chaves){
+      const carts=grupos.get(gk);
+      if(!gk){ corpo+=blocoCarteiras(carts); continue; }          // cliente sem subdivisão
+      const pares=paresDe(carts);
+      if(!pares.filter(([c,it])=>filtroPassa(c,it)).length)continue;
+      const gok=pares.filter(([,it])=>it.status==='batido').length, gn=pares.length;
+      const gab=ABERTOS_G.has(cliente+'|'+gk);
+      corpo+=`<div class="grp ${gab?'open':''}">
+        <div class="grp-head" data-k="${esc(cliente+'|'+gk)}" onclick="alternarGrupo(this.dataset.k)">
+          <span class="seta">${gab?'▼':'▶'}</span>
+          <span class="nm">${esc(gk)}</span>
+          <span class="cnt">${carts.size} carteira(s) · ${gn} conta(s)</span>
+          <div class="prog"><i class="${gok===gn?'full':''}" style="width:${Math.round(gok/gn*100)}%"></i></div>
+          <span class="pc">${gok}/${gn}</span></div>
+        <div class="grp-body">${blocoCarteiras(carts)}</div></div>`;
     }
     html+=`<div class="cli ${aberto?'open':''}">
       <div class="cli-head" data-cli="${esc(cliente)}" onclick="alternarCliente(this.dataset.cli)">
@@ -611,6 +658,10 @@ function alternarCliente(cli){
   ABERTOS.has(cli)?ABERTOS.delete(cli):ABERTOS.add(cli);
   render();
 }
+function alternarGrupo(k){
+  ABERTOS_G.has(k)?ABERTOS_G.delete(k):ABERTOS_G.add(k);
+  render();
+}
 
 function editarObs(id,btn){
   const row=btn.closest('.row'), it=doMes().find(i=>i.id_conta===id);
@@ -630,6 +681,8 @@ function abrirMontar(){
   if(fechado()){toast('Mês fechado — reabra para mexer na seleção.');return;}
   SEL=new Set(doMes().map(i=>i.id_conta));
   TREE_OPEN=new Set([...new Set(CONTAS.filter(c=>SEL.has(c.id_conta)).map(c=>c.cliente))]);
+  TREE_OPEN_G=new Set(CONTAS.filter(c=>SEL.has(c.id_conta)&&grupoDe(c))
+    .map(c=>c.cliente+'|'+grupoDe(c)));
   $('m-h').textContent='Montar '+mesBR(MES);
   const ant=mesAnterior(MES);
   const temAnt=ITENS.some(i=>i.mes===ant);
@@ -641,32 +694,30 @@ function abrirMontar(){
 }
 function fecharModal(){$('modal').classList.remove('show');}
 
-function agrupado(){
+function agrupado(){   // cliente → grupo → carteira → [contas]
   const g=new Map();
   CONTAS.filter(c=>c.ativa!==false||SEL.has(c.id_conta)).forEach(c=>{
     if(!g.has(c.cliente))g.set(c.cliente,new Map());
-    const m=g.get(c.cliente);
+    const gr=g.get(c.cliente), gk=grupoDe(c);
+    if(!gr.has(gk))gr.set(gk,new Map());
+    const m=gr.get(gk);
     if(!m.has(c.carteira))m.set(c.carteira,[]);
     m.get(c.carteira).push(c);
   });
   return g;
 }
+const contasDoCliente=cli=>CONTAS.filter(c=>c.cliente===cli);
+const contasDoGrupo=(cli,gk)=>CONTAS.filter(c=>c.cliente===cli&&grupoDe(c)===gk);
 function renderArvore(){
   const q=($('m-busca').value||'').toLowerCase().trim();
-  const bate=c=>!q||[c.conta,c.carteira,c.cliente,c.id_conta].join(' ').toLowerCase().includes(q);
-  let html='';
-  for(const [cliente,carts] of agrupado()){
-    const todas=[...carts.values()].flat();
-    const vis=todas.filter(bate);
-    if(!vis.length)continue;
-    const marc=todas.filter(c=>SEL.has(c.id_conta)).length;
-    const aberto=q?true:TREE_OPEN.has(cliente);
-    let corpo='';
+  const bate=c=>!q||[c.conta,c.carteira,c.cliente,grupoDe(c),c.id_conta].join(' ').toLowerCase().includes(q);
+  const blocoCart=(carts)=>{
+    let out='';
     for(const [carteira,contas] of carts){
       const cv=contas.filter(bate);
       if(!cv.length)continue;
       const cm=contas.filter(c=>SEL.has(c.id_conta)).length;
-      corpo+=`<div class="tc"><div class="tc-head">
+      out+=`<div class="tc"><div class="tc-head">
           <label class="chk"><input type="checkbox" data-cart="${esc(carteira)}"
             onchange="marcarCarteira(this.dataset.cart,this.checked)"
             ${cm===contas.length?'checked':''}>
@@ -677,6 +728,36 @@ function renderArvore(){
           return `<label class="cbx ${on?'on':''}" title="${esc(c.carteira)}${c.periodicidade?' · '+c.periodicidade:''}${c.no_controle?' · no controle':' · fora do controle'}">
             <input type="checkbox" ${on?'checked':''} onchange="marcarConta('${c.id_conta}',this.checked)">
             <span class="id">${esc(c.id_conta)}</span> ${esc(c.conta)}</label>`;}).join('')}</div></div>`;
+    }
+    return out;
+  };
+
+  let html='';
+  for(const [cliente,grupos] of agrupado()){
+    const todas=contasDoCliente(cliente);
+    if(!todas.filter(bate).length)continue;
+    const vis=todas.filter(bate);
+    const marc=todas.filter(c=>SEL.has(c.id_conta)).length;
+    const aberto=q?true:TREE_OPEN.has(cliente);
+    let corpo='';
+    const chaves=[...grupos.keys()].sort((a,b)=>ordGrupo(a)-ordGrupo(b)||a.localeCompare(b));
+    for(const gk of chaves){
+      const carts=grupos.get(gk);
+      if(!gk){ corpo+=blocoCart(carts); continue; }
+      const contasG=contasDoGrupo(cliente,gk);
+      if(!contasG.filter(bate).length)continue;
+      const gm=contasG.filter(c=>SEL.has(c.id_conta)).length;
+      const gab=q?true:TREE_OPEN_G.has(cliente+'|'+gk);
+      corpo+=`<div class="tn ${gab?'open':''}" style="border-bottom:none">
+        <div class="tn-head" data-k="${esc(cliente+'|'+gk)}" onclick="alternarArvoreGrupo(this.dataset.k,event)"
+             style="padding:5px 6px">
+          <span class="seta">${gab?'▼':'▶'}</span>
+          <label class="chk" onclick="event.stopPropagation()">
+            <input type="checkbox" data-grupo="${esc(cliente+'|'+gk)}"
+              onchange="marcarGrupo(this.dataset.grupo,this.checked)" ${gm===contasG.length?'checked':''}>
+            <span class="nm" style="font-size:12.5px">${esc(gk)}</span></label>
+          <span class="cnt">${gm}/${contasG.length}</span></div>
+        <div class="tn-body" style="padding-left:20px">${blocoCart(carts)}</div></div>`;
     }
     html+=`<div class="tn ${aberto?'open':''}">
       <div class="tn-head" data-cli="${esc(cliente)}" onclick="alternarArvore(this.dataset.cli,event)">
@@ -692,14 +773,19 @@ function renderArvore(){
   }
   $('arvore').innerHTML=html||'<div class="vazio" style="border:none">nada com esse filtro</div>';
   // tri-state (parcialmente marcado): percorre os inputs, sem seletor por valor
-  const g=agrupado();
   $('arvore').querySelectorAll('input[data-cli]').forEach(el=>{
-    const carts=g.get(el.dataset.cli); if(!carts)return;
-    const todas=[...carts.values()].flat(), m=todas.filter(c=>SEL.has(c.id_conta)).length;
+    const todas=contasDoCliente(el.dataset.cli);
+    const m=todas.filter(c=>SEL.has(c.id_conta)).length;
     el.indeterminate=m>0&&m<todas.length;
   });
   $('arvore').querySelectorAll('input[data-cart]').forEach(el=>{
     const contas=CONTAS.filter(c=>c.carteira===el.dataset.cart);
+    const m=contas.filter(c=>SEL.has(c.id_conta)).length;
+    el.indeterminate=m>0&&m<contas.length;
+  });
+  $('arvore').querySelectorAll('input[data-grupo]').forEach(el=>{
+    const [cli,gk]=el.dataset.grupo.split('|');
+    const contas=contasDoGrupo(cli,gk);
     const m=contas.filter(c=>SEL.has(c.id_conta)).length;
     el.indeterminate=m>0&&m<contas.length;
   });
@@ -729,22 +815,36 @@ function marcarCliente(cli,on){
   if(on)TREE_OPEN.add(cli);
   renderArvore();
 }
+function marcarGrupo(k,on){
+  const [cli,gk]=k.split('|');
+  contasDoGrupo(cli,gk).forEach(c=>on?SEL.add(c.id_conta):SEL.delete(c.id_conta));
+  if(on){TREE_OPEN.add(cli);TREE_OPEN_G.add(k);}
+  renderArvore();
+}
+function alternarArvoreGrupo(k,e){
+  if(e&&e.target&&e.target.tagName==='INPUT')return;
+  TREE_OPEN_G.has(k)?TREE_OPEN_G.delete(k):TREE_OPEN_G.add(k);
+  renderArvore();
+}
 function marcarControle(){
   const fc=$('f-cliente').value;
   CONTAS.filter(c=>c.no_controle&&(!fc||c.cliente===fc)).forEach(c=>SEL.add(c.id_conta));
-  CONTAS.filter(c=>SEL.has(c.id_conta)).forEach(c=>TREE_OPEN.add(c.cliente));
+  CONTAS.filter(c=>SEL.has(c.id_conta)).forEach(c=>{TREE_OPEN.add(c.cliente);
+    if(grupoDe(c))TREE_OPEN_G.add(c.cliente+'|'+grupoDe(c));});
   renderArvore();
   toast(fc?`contas do controle de ${fc} marcadas`:'contas do controle marcadas');
 }
 function marcarPeriodicidade(p){
-  CONTAS.filter(c=>c.periodicidade===p).forEach(c=>{SEL.add(c.id_conta);TREE_OPEN.add(c.cliente);});
+  CONTAS.filter(c=>c.periodicidade===p).forEach(c=>{SEL.add(c.id_conta);TREE_OPEN.add(c.cliente);
+    if(grupoDe(c))TREE_OPEN_G.add(c.cliente+'|'+grupoDe(c));});
   renderArvore();
 }
 function limparSelecao(){SEL=new Set();renderArvore();}
 function copiarMesAnterior(){
   const ant=mesAnterior(MES);
   ITENS.filter(i=>i.mes===ant).forEach(i=>{SEL.add(i.id_conta);
-    const c=catConta(i.id_conta); if(c)TREE_OPEN.add(c.cliente);});
+    const c=catConta(i.id_conta);
+    if(c){TREE_OPEN.add(c.cliente); if(grupoDe(c))TREE_OPEN_G.add(c.cliente+'|'+grupoDe(c));}});
   renderArvore();
   toast(`seleção de ${mesCurto(ant)} copiada — confira e salve`);
 }
