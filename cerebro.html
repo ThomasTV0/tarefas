@@ -109,12 +109,14 @@
   .det .kv div{color:var(--texto)}
   .det a{color:var(--laranja-escuro);text-decoration:none;font-weight:600}
   /* nível de uso por pessoa */
-  .pessoas{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:7px 18px}
+  .pessoas{display:grid;grid-template-columns:repeat(auto-fit,minmax(268px,1fr));gap:7px 18px}
   .pl{display:grid;grid-template-columns:96px auto 1fr;align-items:center;gap:9px;font-size:12px}
   .pl .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pl .dots{display:flex;gap:3px}
   .pl .dots i{width:9px;height:9px;border-radius:50%;background:var(--borda-2)}
   .pl .dots i.on{background:var(--laranja)}
+  /* usou, mas abaixo do corte — meia bolinha */
+  .pl .dots i.half{background:linear-gradient(90deg,var(--laranja) 50%,var(--borda-2) 50%)}
   .pl .dots i.fora{background:transparent;border:1px dashed var(--borda-2)}
   .pl .nv{font-size:11px;color:var(--texto-sec)}
   .pl.zero .nm{color:var(--texto-sec)}
@@ -183,7 +185,7 @@
 
     <div class="grid2">
       <div class="pn">
-        <h3>Razão de adoção <span id="ra-sub">pessoas com ≥15 notas no mês</span></h3>
+        <h3>Razão de adoção <span id="ra-sub">pessoas com ≥15 eventos na janela</span></h3>
         <div class="bars" id="ra-bars"></div>
         <div class="mini" id="criadas"></div>
       </div>
@@ -195,7 +197,7 @@
     </div>
 
     <div class="pn">
-      <h3>Nível de uso por pessoa <span>● mês com ≥15 notas · ○ mês sem · ◌ fora do escopo ainda</span></h3>
+      <h3>Nível de uso por pessoa <span id="uso-sub">escrita + consulta · ● usa · ◐ usou pouco · ○ nada · ◌ fora do escopo</span></h3>
       <div class="pessoas" id="pessoas"></div>
     </div>
 
@@ -239,8 +241,18 @@ const ESCOPO=[
   {n:'Giuliano',de:'2026-04'},{n:'João Sevestrin',de:'2026-04'},
   {n:'Talita',de:'2026-08'},{n:'Gustavo',de:'2026-08'},
 ];
-const MIN_NOTAS=15;   // corte de "usa" (era 3 até 29/07/2026)
+// corte de "usa": eventos na janela (escrita + consulta). Era 3 notas/mês até
+// 29/07/2026, virou 15 notas/mês, e em 04/08/2026 passou a somar consulta.
+const MIN_EVENTOS=15;
 let PROJ=[], ADO=[], TKS=[], USER=null;
+
+/* a série é diária; para o gráfico ficar legível, amostra N pontos igualmente espaçados */
+const amostra=(arr,n)=>{
+  if(arr.length<=n) return arr;
+  const passo=(arr.length-1)/(n-1);
+  return Array.from({length:n},(_,i)=>arr[Math.round(i*passo)]);
+};
+const diaBR=d=>fmtBR(d).slice(0,5);   // 04/08/2026 → 04/08
 
 const $=s=>document.getElementById(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -265,13 +277,13 @@ async function sair(){await sb.auth.signOut();location.reload();}
 async function carregar(){
   const [p,a,t]=await Promise.all([
     sb.from('cerebro_projetos').select('*').order('ordem'),
-    sb.from('cerebro_adocao').select('*').order('mes'),
+    sb.from('cerebro_adocao_dia').select('*').order('data').limit(400),
     sb.from('tarefas').select('*').eq('projeto','Cerebro Dot')]);
   if(p.error||a.error){
     const e=(p.error||a.error);
     toast('Erro ao carregar: '+e.message);
     if(/does not exist|schema cache/i.test(e.message))
-      toast('Tabelas não criadas — rode sql/schema_cerebro.sql no Supabase.');
+      toast('Tabelas não criadas — rode sql/schema_cerebro_janela.sql no Supabase.');
     return;
   }
   PROJ=p.data||[]; ADO=a.data||[]; TKS=t.error?[]:(t.data||[]);
@@ -280,7 +292,7 @@ async function carregar(){
 function realtime(){
   sb.channel('rt-cerebro')
     .on('postgres_changes',{event:'*',schema:'public',table:'cerebro_projetos'},carregar)
-    .on('postgres_changes',{event:'*',schema:'public',table:'cerebro_adocao'},carregar)
+    .on('postgres_changes',{event:'*',schema:'public',table:'cerebro_adocao_dia'},carregar)
     .on('postgres_changes',{event:'*',schema:'public',table:'tarefas'},carregar)
     .subscribe();
 }
@@ -293,7 +305,12 @@ const cob=d=>(d&&d.areas_total)?d.areas_ativas/d.areas_total:null;
 /* ── render ── */
 function render(){
   const cur=ADO.length?ADO[ADO.length-1]:null;
-  $('hd-mes').textContent=cur?('adoção '+mesBR(cur.mes)+(cur.fechado?'':' · parcial')):'sem medição';
+  $('hd-mes').textContent=cur?(`adoção · ${cur.janela_dias||30}d até ${diaBR(cur.data)}`):'sem medição';
+  if(cur){
+    $('ra-sub').textContent=`pessoas com ≥${MIN_EVENTOS} eventos em ${cur.janela_dias||30} dias`;
+    $('uso-sub').textContent=`escrita + consulta nos últimos ${cur.janela_dias||30}d · `
+      +'● usa · ◐ usou pouco · ○ nada · ◌ fora do escopo';
+  }
   tiles(cur); barsRA(); listaCriadas(); quemEscreveu(cur); pessoas(); gantt(); semPrazo(); tarefas();
   const ts=[...PROJ.map(p=>p.atualizado_em),...ADO.map(a=>a.atualizado_em)].filter(Boolean).sort().pop();
   $('rod-upd').textContent=ts?('atualizado '+new Date(ts).toLocaleString('pt-BR')):'';
@@ -306,22 +323,26 @@ function tile(l,n,f,extra='',bar=null,cls=''){
 }
 function tiles(d){
   if(!d){$('tiles').innerHTML=tile('Adoção','—','sem medição ainda');return;}
-  const r=ra(d), dc=desc(d);
+  const r=ra(d), dc=desc(d), jd=d.janela_dias||30;
+  const nCons=(d.consultaram||[]).length;
   $('tiles').innerHTML=[
-    tile('Razão de adoção', pct(r), `${d.pessoas_ativas} de ${d.escopo} pessoas · ≥${MIN_NOTAS} notas`, '', r),
+    tile('Razão de adoção', pct(r), `${d.pessoas_ativas} de ${d.escopo} pessoas · ≥${MIN_EVENTOS} eventos`, '', r),
     tile('Desconcentração', pct(dc), `fora de ${(d.top2||[]).join(' + ')||'—'}`, '', dc),
     tile('Cobertura de área', (d.areas_ativas??'—')+' <small>/'+(d.areas_total??7)+'</small>',
-         'pastas com ≥3 notas no mês (esta continua em 3)'),
-    tile('Notas criadas', d.notas_criadas??'—', 'no mês'+(d.fechado?'':' (parcial)')),
-    tile('Sem autor', d.sem_autor??'—', 'notas sem criado_por', '', null,
-         (d.sem_autor??0)>0?'ruim':''),
-    tile('Consulta', d.perguntas==null?'—':d.perguntas,
-         d.perguntas==null?'não instrumentado (C8)':'perguntas respondidas'),
+         `áreas com ≥3 notas em ${jd}d`
+         +((d.areas_fora||[]).length?` · fora do mapa: ${esc(d.areas_fora.join(', '))}`:'')),
+    tile('Notas criadas', d.notas_criadas??'—', `nos últimos ${jd} dias`),
+    tile('Consulta', d.consultas==null?'—':d.consultas,
+         d.consultas==null?'não instrumentado — registre com o CLI'
+                          :`${nCons} pessoa(s) leram o Cérebro`, '', null,
+         (d.consultas??0)===0?'ruim':''),
+    tile('Higiene', d.sem_autor??'—', `sem criado_por · ${d.sem_atualizado_por??'—'} editadas sem atualizado_por`,
+         '', null, (d.sem_autor??0)>0?'ruim':''),
   ].join('');
 }
 
 function barsRA(){
-  const cols=ADO.map(d=>({lab:mesBR(d.mes),v:ra(d),on:d===ADO[ADO.length-1]}));
+  const cols=amostra(ADO,12).map(d=>({lab:diaBR(d.data),v:ra(d),on:d===ADO[ADO.length-1]}));
   const max=Math.max(...cols.map(c=>c.v||0),.01);
   $('ra-bars').innerHTML=cols.map(c=>`<div class="bcol">
       <div class="bval">${pct(c.v)}</div>
@@ -330,17 +351,20 @@ function barsRA(){
 }
 
 function listaCriadas(){
-  const max=Math.max(...ADO.map(d=>d.notas_criadas||0),1);
-  $('criadas').innerHTML=ADO.map(d=>`<div class="mrow"><span>${mesBR(d.mes)}</span>
+  const pontos=amostra(ADO,8);
+  const max=Math.max(...pontos.map(d=>d.notas_criadas||0),1);
+  $('criadas').innerHTML=pontos.map(d=>`<div class="mrow"><span>${diaBR(d.data)}</span>
       <div class="trk"><i style="width:${((d.notas_criadas||0)/max)*100}%"></i></div>
       <b>${d.notas_criadas??'—'}</b></div>`).join('');
 }
 
 function quemEscreveu(d){
   if(!d){$('chips').innerHTML='<span class="chip">—</span>';$('fora').innerHTML='';return;}
-  $('mes-ativos').textContent=mesBR(d.mes)+(d.fechado?'':' · parcial');
+  $('mes-ativos').textContent=`últimos ${d.janela_dias||30}d`;
   const ativos=d.ativos||[], top2=d.top2||[];
-  const escopo=['Thomas','Vini','B2','Bruna Bispo','Jota','Ramiro','Manuella','Mauricio','Felipe','Giuliano'];
+  // escopo vem da própria medição (o medidor é a fonte) — não repetir a lista aqui
+  const escopo=Object.keys(d.por_pessoa||{}).length?Object.keys(d.por_pessoa)
+                                                  :ESCOPO.map(p=>p.n);
   const inativos=escopo.filter(p=>!ativos.includes(p));
   $('chips').innerHTML=ativos.map(p=>`<span class="chip ${top2.includes(p)?'top':''}">${esc(p)}</span>`).join('')
     +inativos.map(p=>`<span class="chip fora">${esc(p)}</span>`).join('');
@@ -352,30 +376,38 @@ function quemEscreveu(d){
       <b>${resto}</b></div>`;
 }
 
-/* nível de uso por pessoa: matriz pessoa × mês (● = mês com ≥3 notas) */
+/* nível de uso por pessoa — ESCRITA + CONSULTA na janela móvel.
+   Antes era pessoa × mês e só contava quem escrevia: quem só LÊ o Cérebro
+   aparecia como "nunca usou". Agora cada bolinha é uma foto da série
+   (● bateu o corte · ◐ usou abaixo do corte · ○ nada · ◌ fora do escopo). */
 function pessoas(){
-  const meses=ADO.map(d=>d.mes);
-  const ultimo=meses[meses.length-1]||'2026-04';
-  const linhas=ESCOPO.filter(p=>p.de<=ultimo).map(({n:nome,de})=>{
-    const on=meses.map(m=>{
-      if(de>m) return null;                       // ainda não estava no escopo
-      const d=ADO.find(x=>x.mes===m);
-      return !!(d&&(d.ativos||[]).includes(nome));
+  const cur=ADO.length?ADO[ADO.length-1]:null;
+  if(!cur){$('pessoas').innerHTML='<span class="nv">sem medição ainda</span>';return;}
+  const pontos=amostra(ADO,12);
+  const pp=cur.por_pessoa||{};
+  const nomes=Object.keys(pp).length?Object.keys(pp):ESCOPO.map(p=>p.n);
+  const jd=cur.janela_dias||30;
+  const linhas=nomes.map(nome=>{
+    const d=pp[nome]||{escritas:0,consultas:0,eventos:0};
+    const on=pontos.map(s=>{
+      const q=(s.por_pessoa||{})[nome];
+      if(!q) return null;                          // não estava no escopo naquele ponto
+      if((s.ativos||[]).includes(nome)) return 2;
+      return (q.eventos||0)>0?1:0;
     });
-    const n=on.filter(Boolean).length, ult=on[on.length-1], pen=on[on.length-2];
+    const e=d.escritas||0, c=d.consultas||0;
     let nv;
-    if(on.every(o=>o===null)) nv='entra em '+mesBR(de);
-    else if(n===0) nv='nunca usou';
-    else if(n===meses.length) nv='constante';
-    else if(ult&&!pen) nv='entrou agora';
-    else if(!ult&&pen) nv='parou';
-    else if(!ult) nv=`fora há ${on.slice().reverse().findIndex(Boolean)} mês(es)`;
-    else nv=`${n} de ${meses.length} meses`;
-    return {nome,on,n,nv,zero:n===0};
-  }).sort((a,b)=>b.n-a.n||a.nome.localeCompare(b.nome));
+    if(d.eventos>=MIN_EVENTOS)  nv=`usa · ${e} escritas · ${c} consultas`;
+    else if(e&&c)               nv=`usa pouco · ${e}e · ${c}c`;
+    else if(e)                  nv=`só escreve · ${e}`;
+    else if(c)                  nv=`só consulta · ${c}`;
+    else                        nv=`nada em ${jd}d`;
+    return {nome,on,ev:d.eventos||0,nv,zero:(d.eventos||0)===0};
+  }).sort((a,b)=>b.ev-a.ev||a.nome.localeCompare(b.nome));
+  const cls=o=>o===null?'fora':(o===2?'on':(o===1?'half':''));
   $('pessoas').innerHTML=linhas.map(l=>`<div class="pl ${l.zero?'zero':''}">
       <span class="nm">${esc(l.nome)}</span>
-      <span class="dots">${l.on.map(o=>`<i class="${o===null?'fora':(o?'on':'')}"></i>`).join('')}</span>
+      <span class="dots">${l.on.map(o=>`<i class="${cls(o)}"></i>`).join('')}</span>
       <span class="nv">${esc(l.nv)}</span></div>`).join('');
 }
 
