@@ -242,6 +242,9 @@ const ESCOPO=[
 // corte de "usa": eventos na janela (escrita + consulta). Era 3 notas/mês até
 // 29/07/2026, virou 15 notas/mês, e em 04/08/2026 passou a somar consulta.
 const MIN_EVENTOS=15;
+// régua da cobertura: notas criadas na janela p/ a área contar (era 3, virou 10 em 04/08/2026).
+// ⚠ tem que bater com MIN_NOTAS_AREA de Meta/medir_adocao_cerebro.py — aqui é só rótulo.
+const MIN_NOTAS_AREA=10;
 let PROJ=[], ADO=[], TKS=[], USER=null;
 
 /* a série é diária; para o gráfico ficar legível, amostra N pontos igualmente espaçados */
@@ -326,7 +329,8 @@ function tiles(d){
   $('tiles').innerHTML=[
     tile('Razão de adoção', pct(r), `${d.pessoas_ativas} de ${d.escopo} pessoas · ≥${MIN_EVENTOS} eventos`, '', r),
     tile('Desconcentração', pct(dc), `fora de ${(d.top2||[]).join(' + ')||'—'}`, '', dc),
-    tile('Cobertura de área', (d.areas_ativas??'—')+' <small>/'+(d.areas_total??7)+'</small>', ''),
+    tile('Cobertura de área', (d.areas_ativas??'—')+' <small>/'+(d.areas_total??7)+'</small>',
+         `${d.areas_ativas??'—'} de ${d.areas_total??7} áreas · ≥${MIN_NOTAS_AREA} notas`),
     tile('Notas criadas', d.notas_criadas??'—', `nos últimos ${jd} dias`),
     tile('Consulta', d.consultas==null?'—':d.consultas,
          d.consultas==null?'não instrumentado — registre com o CLI'
