@@ -132,13 +132,24 @@
   .cart-head .cnt{font-size:10.5px;color:var(--texto-sec)}
   .cart-head .cnt.ok{color:var(--ok);font-weight:700}
 
-  .row{display:grid;grid-template-columns:46px 1fr auto auto;gap:10px;align-items:center;
-    padding:7px 16px;border-top:1px solid #F4F1EC}
-  .row:hover{background:#FDFCFA}
+  .row{position:relative;display:grid;grid-template-columns:46px 1fr auto auto;gap:10px;align-items:center;
+    padding:7px 16px;border-top:1px solid #F4F1EC;transition:background .12s}
+  /* faixa lateral da linha: verde quando batida, laranja na linha sob o mouse */
+  .row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:transparent;transition:background .12s}
   .row .idc{font:600 11px var(--mono);color:var(--texto-sec);text-align:right}
   .row .nome{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
   .row .nome b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* conta batida: o estado se lê na linha inteira, não só no ✓ */
+  .row.batido{background:linear-gradient(90deg,rgba(62,124,82,.10),rgba(62,124,82,.03) 55%,transparent)}
+  .row.batido::before{background:var(--ok)}
+  .row.batido .idc{color:#A3B4A5}
   .row.batido .nome b{color:var(--done);font-weight:550}
+  .row.batido .quando{color:var(--ok);font-style:normal;font-weight:650}
+  /* hover por último: a linha apontada sempre vence a cor de batida */
+  .row:hover{background:rgba(247,157,99,.14)}
+  .row:hover::before{background:var(--laranja-forte)}
+  .row.batido:hover{background:rgba(247,157,99,.17)}
   .chip{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 7px;
     border-radius:20px;background:var(--suave);border:1px solid var(--borda);color:var(--texto-sec);white-space:nowrap}
   .chip.per-D{background:var(--laranja-tint);border-color:#F2D9C2;color:var(--laranja-escuro)}
