@@ -219,8 +219,8 @@
   .cbx .id{font:600 10.5px var(--mono);color:var(--texto-sec)}
   .cbx.on .id{color:var(--laranja-escuro)}
   .cbx input{accent-color:var(--laranja-forte);margin:0}
-  label.chk{display:flex;align-items:center;gap:7px;cursor:pointer}
-  label.chk input{accent-color:var(--laranja-forte);width:15px;height:15px}
+  .chk{display:flex;align-items:center;gap:7px;cursor:pointer}
+  .chk input{accent-color:var(--laranja-forte);width:15px;height:15px}
   .mfoot{display:flex;align-items:center;gap:10px;padding:14px 24px;border-top:1px solid var(--borda);flex-wrap:wrap}
   .mfoot .diff{font-size:12.5px;color:var(--texto-sec)}
   .mfoot .diff b{color:var(--texto)}
@@ -330,7 +330,7 @@
       <div class="msub">Marque as contas que você vai bater neste mês. Conta já no mês não entra
         duas vezes — o banco recusa duplicata.</div>
       <div class="mtools">
-        <input type="text" id="m-busca" placeholder="buscar conta/carteira…" oninput="renderArvore()">
+        <input type="text" id="m-busca" placeholder="buscar conta/carteira…" oninput="buscarArvore()">
         <button class="mini-btn" onclick="marcarControle()">só as do controle</button>
         <button class="mini-btn" onclick="marcarPeriodicidade('Mensal')">+ mensais</button>
         <button class="mini-btn" onclick="marcarPeriodicidade('Trimestral')">+ trimestrais</button>
@@ -371,6 +371,9 @@ const MES_CURTO=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','no
 
 let CONTAS=[], ITENS=[], CICLOS=[], MES=null, USER=null;
 let SEL=new Set(), ABERTOS=null, ABERTOS_G=null, TREE_OPEN=new Set(), TREE_OPEN_G=new Set();
+// busca do montador: guarda o que estava aberto antes de buscar e o que o usuário colapsou
+// DURANTE a busca (senão a cada tecla o nó que casa voltaria a abrir sozinho)
+let BUSCA_SNAP=null, BUSCA_FECHADOS=new Set();
 let _toastTimer=null, _downBackdrop=false;
 let ANO_PICK=new Date().getFullYear();
 
@@ -700,6 +703,7 @@ function abrirMontar(){
   $('m-copiar').style.display=temAnt?'':'none';
   $('m-copiar').textContent='copiar '+mesCurto(ant)+' ('+ITENS.filter(i=>i.mes===ant).length+')';
   $('m-busca').value='';
+  BUSCA_SNAP=null; BUSCA_FECHADOS=new Set();
   renderArvore();
   $('modal').classList.add('show');
 }
@@ -749,7 +753,7 @@ function renderArvore(){
     if(!todas.filter(bate).length)continue;
     const vis=todas.filter(bate);
     const marc=todas.filter(c=>SEL.has(c.id_conta)).length;
-    const aberto=q?true:TREE_OPEN.has(cliente);
+    const aberto=TREE_OPEN.has(cliente);
     let corpo='';
     const chaves=[...grupos.keys()].sort((a,b)=>ordGrupo(a)-ordGrupo(b)||a.localeCompare(b));
     for(const gk of chaves){
@@ -758,26 +762,28 @@ function renderArvore(){
       const contasG=contasDoGrupo(cliente,gk);
       if(!contasG.filter(bate).length)continue;
       const gm=contasG.filter(c=>SEL.has(c.id_conta)).length;
-      const gab=q?true:TREE_OPEN_G.has(cliente+'|'+gk);
+      const gab=TREE_OPEN_G.has(cliente+'|'+gk);
       corpo+=`<div class="tn ${gab?'open':''}" style="border-bottom:none">
         <div class="tn-head" data-k="${esc(cliente+'|'+gk)}" onclick="alternarArvoreGrupo(this.dataset.k,event)"
              style="padding:5px 6px">
           <span class="seta">${gab?'▼':'▶'}</span>
-          <label class="chk" onclick="event.stopPropagation()">
-            <input type="checkbox" data-grupo="${esc(cliente+'|'+gk)}"
+          <span class="chk">
+            <input type="checkbox" data-grupo="${esc(cliente+'|'+gk)}" onclick="event.stopPropagation()"
+              title="marcar/desmarcar as contas de ${esc(gk)}"
               onchange="marcarGrupo(this.dataset.grupo,this.checked)" ${gm===contasG.length?'checked':''}>
-            <span class="nm" style="font-size:12.5px">${esc(gk)}</span></label>
+            <span class="nm" style="font-size:12.5px">${esc(gk)}</span></span>
           <span class="cnt">${gm}/${contasG.length}</span></div>
         <div class="tn-body" style="padding-left:20px">${blocoCart(carts)}</div></div>`;
     }
     html+=`<div class="tn ${aberto?'open':''}">
       <div class="tn-head" data-cli="${esc(cliente)}" onclick="alternarArvore(this.dataset.cli,event)">
         <span class="seta">${aberto?'▼':'▶'}</span>
-        <label class="chk" onclick="event.stopPropagation()">
-          <input type="checkbox" data-cli="${esc(cliente)}"
+        <span class="chk">
+          <input type="checkbox" data-cli="${esc(cliente)}" onclick="event.stopPropagation()"
+            title="marcar/desmarcar todas as contas de ${esc(cliente)}"
             onchange="marcarCliente(this.dataset.cli,this.checked)"
             ${marc===todas.length?'checked':''}>
-          <span class="nm">${esc(cliente)}</span></label>
+          <span class="nm">${esc(cliente)}</span></span>
         <span class="cnt">${marc}/${todas.length} marcada(s)${q?` · ${vis.length} no filtro`:''}</span>
       </div>
       <div class="tn-body">${corpo}</div></div>`;
@@ -811,9 +817,31 @@ function diff(){
     `<b style="color:var(--ok)">+${add}</b> entra(m) · <b style="color:var(--err)">−${rem.length}</b> sai(em)`+
     (remB?` <span style="color:var(--err)">(${remB} já batida(s)!)</span>`:'');
 }
+// busca abre quem casa, mas respeita o que você colapsou na mão durante a busca
+function buscarArvore(){
+  const q=($('m-busca').value||'').toLowerCase().trim();
+  if(!q){
+    if(BUSCA_SNAP){TREE_OPEN=BUSCA_SNAP.o;TREE_OPEN_G=BUSCA_SNAP.g;}
+    BUSCA_SNAP=null; BUSCA_FECHADOS=new Set(); renderArvore(); return;
+  }
+  if(!BUSCA_SNAP)BUSCA_SNAP={o:new Set(TREE_OPEN),g:new Set(TREE_OPEN_G)};
+  CONTAS.forEach(c=>{
+    const gk=grupoDe(c);
+    if(![c.conta,c.carteira,c.cliente,gk,c.id_conta].join(' ').toLowerCase().includes(q))return;
+    if(!BUSCA_FECHADOS.has(c.cliente))TREE_OPEN.add(c.cliente);
+    if(gk&&!BUSCA_FECHADOS.has(c.cliente+'|'+gk))TREE_OPEN_G.add(c.cliente+'|'+gk);
+  });
+  renderArvore();
+}
+const emBusca=()=>!!($('m-busca').value||'').trim();
+const marcarFechado=(k,fechou)=>{ if(!emBusca())return;
+  fechou?BUSCA_FECHADOS.add(k):BUSCA_FECHADOS.delete(k); };
+
 function alternarArvore(cli,e){
   if(e&&e.target&&e.target.tagName==='INPUT')return;
-  TREE_OPEN.has(cli)?TREE_OPEN.delete(cli):TREE_OPEN.add(cli);
+  const fechou=TREE_OPEN.has(cli);
+  fechou?TREE_OPEN.delete(cli):TREE_OPEN.add(cli);
+  marcarFechado(cli,fechou);
   renderArvore();
 }
 function marcarConta(id,on){on?SEL.add(id):SEL.delete(id);renderArvore();}
@@ -823,18 +851,20 @@ function marcarCarteira(cart,on){
 }
 function marcarCliente(cli,on){
   CONTAS.filter(c=>c.cliente===cli).forEach(c=>on?SEL.add(c.id_conta):SEL.delete(c.id_conta));
-  if(on)TREE_OPEN.add(cli);
+  if(on){TREE_OPEN.add(cli);BUSCA_FECHADOS.delete(cli);}
   renderArvore();
 }
 function marcarGrupo(k,on){
   const [cli,gk]=k.split('|');
   contasDoGrupo(cli,gk).forEach(c=>on?SEL.add(c.id_conta):SEL.delete(c.id_conta));
-  if(on){TREE_OPEN.add(cli);TREE_OPEN_G.add(k);}
+  if(on){TREE_OPEN.add(cli);TREE_OPEN_G.add(k);BUSCA_FECHADOS.delete(cli);BUSCA_FECHADOS.delete(k);}
   renderArvore();
 }
 function alternarArvoreGrupo(k,e){
   if(e&&e.target&&e.target.tagName==='INPUT')return;
-  TREE_OPEN_G.has(k)?TREE_OPEN_G.delete(k):TREE_OPEN_G.add(k);
+  const fechou=TREE_OPEN_G.has(k);
+  fechou?TREE_OPEN_G.delete(k):TREE_OPEN_G.add(k);
+  marcarFechado(k,fechou);
   renderArvore();
 }
 function marcarControle(){
