@@ -115,6 +115,20 @@
   .det .barra{display:flex;flex-wrap:wrap;gap:14px;margin-top:13px;padding-top:11px;
     border-top:1px solid var(--borda)}
 
+  /* edição no lugar — mesma régua do resto: hairline, sem caixa, sem sombra */
+  .campo{font:450 13px var(--fonte);color:var(--texto);background:transparent;border:none;
+    border-bottom:1px solid var(--laranja);padding:4px 2px;outline:none;min-width:0}
+  .campo::placeholder{color:var(--borda-2)}
+  .campo.linha{flex:1;font-size:13px}
+  select.campo{border-bottom:1px solid var(--laranja);cursor:pointer;padding-right:14px}
+  .cads .novo{display:inline-flex;align-items:baseline;gap:10px;padding-bottom:7px}
+  .cads .novo .campo{width:190px;font-size:14px}
+  .edit{display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:100%}
+  .edit .rot{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--texto-sec);font-weight:600}
+  .perigo{color:var(--err);font-weight:600}
+  .confirma{display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--err)}
+  .cad .x.armado{color:var(--err);font-weight:700}
+
   .vazio-lista{padding:44px 0;text-align:center;color:var(--texto-sec);font-size:13.5px}
   .rod{margin-top:30px;font-size:11.5px;color:var(--borda-2);display:flex;gap:16px;flex-wrap:wrap}
   .rod code{background:var(--suave);border:1px solid var(--borda);border-radius:5px;
@@ -203,6 +217,19 @@ const STATUS = ['aberta','perguntada','respondida','arquivada'];
 const SLABEL = {aberta:'reabrir', perguntada:'marcar perguntada', respondida:'marcar respondida'};
 
 let BOOKS=[], DUV=[], FILTRO_BOOK='todas', FILTRO_QUEM=null, VER_RESP=false, ABERTA=null, EDIT_CAD=false;
+
+/* Edição no lugar — substitui prompt()/confirm() do navegador, que abrem uma
+   caixa cinza do Chrome com o domínio no título, travam a página e não têm
+   nada a ver com o resto. Um estado só, porque nunca há duas ao mesmo tempo:
+     {t:'book-novo'} · {t:'quem'|'mover'|'resposta', id} · {t:'del', id} · {t:'del-book', slug} */
+let EDIT = null;
+const editando = (t, chave) => EDIT && EDIT.t === t && (chave === undefined || EDIT.id === chave || EDIT.slug === chave);
+function abrirEdit(t, chave){
+  EDIT = (t === 'del-book') ? {t, slug: chave} : {t, id: chave};
+  render();
+  const c = $('edit-campo'); if(c){ c.focus(); if(c.select) c.select(); }
+}
+function fecharEdit(){ EDIT = null; render(); }
 
 const $=s=>document.getElementById(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -327,16 +354,26 @@ function render(){
              <span class="n">${ativas.length}</span></button>`;
   h += BOOKS.filter(b=>!b.arquivado).map(b=>{
     const n = ativas.filter(d=>d.book===b.slug).length;
+    const armado = editando('del-book', b.slug);
     return `<button class="cad ${FILTRO_BOOK===b.slug?'on':''}" data-acao="verBook" data-arg="${esc(b.slug)}"
               title="${esc(b.descricao||'')}">${esc(b.nome)}<span class="n">${n}</span>${
-              EDIT_CAD?`<span class="x" data-acao="apagarBook" data-arg="${esc(b.slug)}">×</span>`:''}</button>`;
+              EDIT_CAD?`<span class="x ${armado?'armado':''}" data-acao="${armado?'apagarBookOk':'apagarBookPedir'}"
+                          data-arg="${esc(b.slug)}" title="${armado?'clique de novo para apagar':'apagar caderno'}"
+                        >${armado?'apagar?':'×'}</span>`:''}</button>`;
   }).join('');
   if(semCad) h += `<button class="cad ${FILTRO_BOOK===''?'on':''}" data-acao="verBook" data-arg="">sem caderno
                      <span class="n">${semCad}</span></button>`;
-  h += `<span class="acoes">
-          <button class="txtbtn forte" data-acao="novoBook">+ caderno</button>
-          <button class="txtbtn" data-acao="editarCadernos">${EDIT_CAD?'pronto':'editar'}</button>
-        </span>`;
+  h += `<span class="acoes">${
+    editando('book-novo')
+      ? `<span class="novo">
+           <input id="edit-campo" class="campo" placeholder="nome do caderno" autocomplete="off"
+                  data-enter="novoBookOk" data-esc="cancelarEdit">
+           <button class="txtbtn forte" data-acao="novoBookOk">criar</button>
+           <button class="txtbtn" data-acao="cancelarEdit">cancelar</button>
+         </span>`
+      : `<button class="txtbtn forte" data-acao="novoBookPedir">+ caderno</button>
+         <button class="txtbtn" data-acao="editarCadernos">${EDIT_CAD?'pronto':'editar'}</button>`
+  }</span>`;
   $('cads').innerHTML = h;
 
   /* pessoas */
@@ -376,15 +413,7 @@ function render(){
           ${d.detalhe?`<div>${esc(d.detalhe)}</div>`:'<div style="color:var(--borda-2)">sem detalhe</div>'}
           ${d.link?`<div style="margin-top:9px"><a href="${linkVault(d.link)}">${esc(d.link)} ↗</a></div>`:''}
           ${d.resposta?`<div class="resposta">${esc(d.resposta)}</div>`:''}
-          <div class="barra">
-            ${d.status!=='perguntada'?`<button class="txtbtn" data-acao="mv" data-arg="${id}" data-arg2="perguntada">marcar perguntada</button>`:''}
-            ${d.status!=='respondida'
-              ?`<button class="txtbtn forte" data-acao="responder" data-arg="${id}">responder</button>`
-              :`<button class="txtbtn" data-acao="mv" data-arg="${id}" data-arg2="aberta">reabrir</button>`}
-            <button class="txtbtn" data-acao="mudarQuem" data-arg="${id}">com quem</button>
-            <button class="txtbtn" data-acao="mudarBook" data-arg="${id}">mover</button>
-            <button class="txtbtn" style="margin-left:auto" data-acao="excluir" data-arg="${id}">excluir</button>
-          </div>
+          <div class="barra">${barra(d, id)}</div>
         </div>
       </div>`;
     }).join('');
@@ -394,6 +423,60 @@ function render(){
   $('hd-dir').innerHTML = LOCAL
     ? `<span class="modo">${PREVIEW?'prévia':'local'}</span>`
     : `<span class="live-dot"></span><span>ao vivo</span><button class="sair" data-acao="sair">sair</button>`;
+}
+
+/* A barra do detalhe tem quatro caras: normal, e uma por edição aberta.
+   Tudo acontece na própria linha — nada de caixa do navegador por cima da página. */
+function barra(d, id){
+  if(editando('resposta', d.id)) return `
+    <div class="edit">
+      <span class="rot">resposta</span>
+      <input id="edit-campo" class="campo linha" value="${esc(d.resposta||'')}" autocomplete="off"
+             placeholder="o que ficou decidido" data-enter="responderOk" data-esc="cancelarEdit" data-arg="${id}">
+      <button class="txtbtn forte" data-acao="responderOk" data-arg="${id}">salvar</button>
+      <button class="txtbtn" data-acao="cancelarEdit">cancelar</button>
+    </div>`;
+
+  if(editando('quem', d.id)){
+    const pessoas = [...new Set(DUV.map(x=>x.quem).filter(Boolean))].sort();
+    return `
+    <div class="edit">
+      <span class="rot">checar com</span>
+      <input id="edit-campo" class="campo linha" value="${esc(d.quem||'')}" list="lista-pessoas"
+             autocomplete="off" placeholder="B2, Bruna, Ramiro…"
+             data-enter="quemOk" data-esc="cancelarEdit" data-arg="${id}">
+      <datalist id="lista-pessoas">${pessoas.map(p=>`<option value="${esc(p)}">`).join('')}</datalist>
+      <button class="txtbtn forte" data-acao="quemOk" data-arg="${id}">salvar</button>
+      <button class="txtbtn" data-acao="cancelarEdit">cancelar</button>
+    </div>`;
+  }
+
+  if(editando('mover', d.id)) return `
+    <div class="edit">
+      <span class="rot">mover para</span>
+      <select id="edit-campo" class="campo" data-esc="cancelarEdit" data-arg="${id}" data-acao="moverOk">
+        <option value=""${d.book?'':' selected'}>— sem caderno —</option>
+        ${BOOKS.filter(b=>!b.arquivado).map(b=>
+          `<option value="${esc(b.slug)}"${b.slug===d.book?' selected':''}>${esc(b.nome)}</option>`).join('')}
+      </select>
+      <button class="txtbtn" data-acao="cancelarEdit">cancelar</button>
+    </div>`;
+
+  if(editando('del', d.id)) return `
+    <div class="confirma">
+      <span>Excluir esta dúvida? Não dá para desfazer.</span>
+      <button class="txtbtn perigo" data-acao="excluirOk" data-arg="${id}">excluir</button>
+      <button class="txtbtn" data-acao="cancelarEdit">manter</button>
+    </div>`;
+
+  return `
+    ${d.status!=='perguntada'?`<button class="txtbtn" data-acao="mv" data-arg="${id}" data-arg2="perguntada">marcar perguntada</button>`:''}
+    ${d.status!=='respondida'
+      ?`<button class="txtbtn forte" data-acao="responder" data-arg="${id}">responder</button>`
+      :`<button class="txtbtn" data-acao="mv" data-arg="${id}" data-arg2="aberta">reabrir</button>`}
+    <button class="txtbtn" data-acao="mudarQuem" data-arg="${id}">com quem</button>
+    <button class="txtbtn" data-acao="mudarBook" data-arg="${id}">mover</button>
+    <button class="txtbtn" style="margin-left:auto" data-acao="excluir" data-arg="${id}">excluir</button>`;
 }
 
 function linkVault(l){
@@ -411,21 +494,32 @@ function linkVault(l){
    de script. Aqui o valor viaja em data-arg (contexto de atributo, onde
    esc() basta) e é lido por dataset, nunca avaliado.
    Bônus: um nome legítimo com apóstrofo (O'Brien) parava o filtro; agora não. */
+const valorEdit = () => { const c = $('edit-campo'); return c ? c.value : ''; };
+
 const ACOES = {
   verBook:        el => verBook(el.dataset.arg),
   verQuem:        el => verQuem(el.dataset.arg),
   verRespondidas: () => { VER_RESP = !VER_RESP; render(); },
-  editarCadernos: () => { EDIT_CAD = !EDIT_CAD; render(); },
-  novoBook:       () => novoBook(),
-  apagarBook:     el => apagarBook(el.dataset.arg),
+  editarCadernos: () => { EDIT_CAD = !EDIT_CAD; EDIT = null; render(); },
   abrir:          el => abrir(el.dataset.arg),
   mv:             el => mv(el.dataset.arg, el.dataset.arg2),
-  responder:      el => responder(el.dataset.arg),
-  mudarQuem:      el => mudarQuem(el.dataset.arg),
-  mudarBook:      el => mudarBook(el.dataset.arg),
-  excluir:        el => excluir(el.dataset.arg),
   enviarLink:     () => enviarLink(),
   sair:           () => sair(),
+
+  /* cada par pedir/Ok: o "pedir" só abre o campo na página, o "Ok" grava */
+  cancelarEdit:     () => fecharEdit(),
+  novoBookPedir:    () => abrirEdit('book-novo'),
+  novoBookOk:       () => novoBook(valorEdit()),
+  apagarBookPedir:  el => abrirEdit('del-book', el.dataset.arg),
+  apagarBookOk:     el => apagarBook(el.dataset.arg),
+  responder:        el => abrirEdit('resposta', el.dataset.arg),
+  responderOk:      el => responder(el.dataset.arg, valorEdit()),
+  mudarQuem:        el => abrirEdit('quem', el.dataset.arg),
+  quemOk:           el => mudarQuem(el.dataset.arg, valorEdit()),
+  mudarBook:        el => abrirEdit('mover', el.dataset.arg),
+  moverOk:          el => mudarBook(el.dataset.arg, valorEdit()),
+  excluir:          el => abrirEdit('del', el.dataset.arg),
+  excluirOk:        el => excluir(el.dataset.arg),
 };
 
 document.addEventListener('click', ev => {
@@ -433,8 +527,29 @@ document.addEventListener('click', ev => {
   if(!el) return;
   /* clique no corpo do detalhe não fecha a linha — só o cabeçalho alterna */
   if(el.dataset.acao === 'abrir' && ev.target.closest('.det')) return;
+  /* o <select> de mover dispara no change, não no clique de abrir a lista */
+  if(el.tagName === 'SELECT') return;
   const fn = ACOES[el.dataset.acao];
   if(fn) fn(el);
+});
+
+document.addEventListener('change', ev => {
+  const el = ev.target.closest('select[data-acao]');
+  if(el && ACOES[el.dataset.acao]) ACOES[el.dataset.acao](el);
+});
+
+/* Enter confirma, Esc cancela — o que a caixa do navegador dava de graça e
+   agora é nosso. data-enter/data-esc apontam para a ação. */
+document.addEventListener('keydown', ev => {
+  const el = ev.target.closest('[data-enter],[data-esc]');
+  if(!el) return;
+  if(ev.key === 'Enter' && el.dataset.enter){
+    ev.preventDefault();
+    const fn = ACOES[el.dataset.enter]; if(fn) fn(el);
+  } else if(ev.key === 'Escape' && el.dataset.esc){
+    ev.preventDefault();
+    const fn = ACOES[el.dataset.esc]; if(fn) fn(el);
+  }
 });
 
 /* ── interações ── */
@@ -469,72 +584,65 @@ async function mv(id, status){
   catch(e){ toast('não salvou: '+e.message); }
 }
 
-async function responder(id){
-  const d = DUV.find(x=>x.id===id);
-  const r = prompt('Resposta (pode deixar em branco):', d && d.resposta || '');
-  if(r===null) return;
+/* Todas recebem o valor pronto do campo da página — nenhuma pergunta ao navegador.
+   Fecham a edição ANTES de gravar, para o render pós-recarregar já vir limpo. */
+async function responder(id, texto){
+  EDIT = null;
   try{
-    await api.patchDuvida(id, {status:'respondida', resposta:r, respondida_em:hoje()});
+    await api.patchDuvida(id, {status:'respondida', resposta:texto, respondida_em:hoje()});
     await recarregar(); toast('respondida');
-  }catch(e){ toast('não salvou: '+e.message); }
+  }catch(e){ render(); toast('não salvou: '+e.message); }
 }
 
-async function mudarQuem(id){
-  const d = DUV.find(x=>x.id===id);
-  const q = prompt('Com quem checar?', d && d.quem || '');
-  if(q===null) return;
-  try{ await api.patchDuvida(id, {quem:q.trim()}); await recarregar(); }
-  catch(e){ toast('não salvou: '+e.message); }
+async function mudarQuem(id, quem){
+  EDIT = null;
+  try{ await api.patchDuvida(id, {quem:(quem||'').trim()}); await recarregar(); }
+  catch(e){ render(); toast('não salvou: '+e.message); }
 }
 
-async function mudarBook(id){
-  const d = DUV.find(x=>x.id===id);
-  const nomes = BOOKS.filter(b=>!b.arquivado).map(b=>b.nome).join(', ');
-  const r = prompt(`Mover para qual caderno?\n(${nomes})\nem branco = sem caderno`,
-                   (BOOKS.find(b=>b.slug===d.book)||{}).nome || '');
-  if(r===null) return;
-  const alvo = BOOKS.find(b=>b.nome.toLowerCase()===r.trim().toLowerCase() || b.slug===slugify(r));
-  if(r.trim() && !alvo){ toast('caderno não encontrado'); return; }
-  try{ await api.patchDuvida(id, {book: alvo?alvo.slug:''}); await recarregar(); }
-  catch(e){ toast('não salvou: '+e.message); }
+async function mudarBook(id, slug){
+  /* vem de um <select> com os cadernos que existem — não há como errar o nome,
+     que era o pior do prompt: digitar "Report " e ouvir "caderno não encontrado" */
+  EDIT = null;
+  try{ await api.patchDuvida(id, {book: slug || ''}); await recarregar(); toast('movida'); }
+  catch(e){ render(); toast('não salvou: '+e.message); }
 }
 
 async function excluir(id){
-  const d = DUV.find(x=>x.id===id);
-  if(!confirm('Excluir esta dúvida?\n\n' + (d?d.titulo:''))) return;
+  EDIT = null;
   try{ await api.apagarDuvida(id); ABERTA=null; await recarregar(); toast('excluída'); }
-  catch(e){ toast('não excluiu: '+e.message); }
+  catch(e){ render(); toast('não excluiu: '+e.message); }
 }
 
-async function novoBook(){
-  const nome = prompt('Nome do caderno:');
-  if(!nome || !nome.trim()) return;
+async function novoBook(nome){
+  if(!nome || !nome.trim()){ const c=$('edit-campo'); if(c)c.focus(); return; }
   const slug = slugify(nome);
   if(BOOKS.some(b=>b.slug===slug)){ toast('já existe um caderno com esse nome'); return; }
   const ordem = BOOKS.reduce((m,b)=>Math.max(m,b.ordem||0),0)+1;
+  EDIT = null;
   try{
     const criado = await api.criarBook({slug, nome:nome.trim(), cor:'', descricao:'', ordem,
                          arquivado:false, criado_em:hoje()});
-    /* o slug que vale e o que o backend gravou — o slugify daqui e so um palpite
-       (o duvidas_io corta em 48, este em 40, e ele resolve colisao com -2/-3) */
+    /* o slug que vale é o que o backend gravou — o slugify daqui é só um palpite
+       (o duvidas_io corta em 48, este em 40, e ele resolve colisão com -2/-3) */
     FILTRO_BOOK = (criado && criado.slug) || slug;
     await recarregar(); toast('caderno criado');
-  }catch(e){ toast('não criou: '+e.message); }
+  }catch(e){ render(); toast('não criou: '+e.message); }
 }
 
 async function apagarBook(slug){
-  const b = BOOKS.find(x=>x.slug===slug);
+  /* a confirmação é o próprio botão: o × vira "apagar?" e só o segundo clique
+     executa. Nada de caixa do navegador para uma ação que é rotina. */
   const n = DUV.filter(d=>d.book===slug && abertas(d)).length;
-  const aviso = n ? `\n\nAs ${n} dúvidas dele ficam sem caderno (não somem).` : '';
-  if(!confirm(`Apagar o caderno "${b?b.nome:slug}"?${aviso}`)) return;
+  EDIT = null;
   try{
     await api.apagarBook(slug);
     if(FILTRO_BOOK===slug) FILTRO_BOOK='todas';
-    await recarregar(); toast('caderno apagado');
-  }catch(e){ toast('não apagou: '+e.message); }
+    await recarregar();
+    toast(n ? `caderno apagado — ${n} dúvida(s) ficaram sem caderno` : 'caderno apagado');
+  }catch(e){ render(); toast('não apagou: '+e.message); }
 }
 
-/* ── auth (só nuvem) ── */
 /* A página fica numa URL pública e adivinhável. signInWithOtp CRIA usuário por
    padrão: um estranho digitava o gmail dele, virava `authenticated` no MESMO
    projeto Supabase e daí lia as tabelas vizinhas cuja policy é `using (true)`
