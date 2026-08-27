@@ -19,13 +19,18 @@
     background:radial-gradient(1000px 340px at 12% -8%,rgba(247,157,99,.14),transparent 60%),
       radial-gradient(800px 300px at 95% -12%,rgba(247,157,99,.08),transparent 55%),var(--bg)}
   .hd{background:linear-gradient(135deg,#262220,#332D28 70%,#3B332C);color:#fff;padding:16px 26px 15px;
-    display:flex;align-items:center;gap:13px}
+    display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+  /* index era a UNICA pagina sem flex-wrap no .hd: com 5 itens na nav o
+     header estourava 375px justamente na landing do painel. */
+  .hd .logo{flex:none}
   .hd .logo{width:15px;height:15px;border-radius:50%;background:var(--laranja);
     box-shadow:0 0 0 5px rgba(247,157,99,.16),0 0 18px rgba(247,157,99,.5)}
   .hd .marca{font-size:15px;font-weight:800;letter-spacing:4px}
   .hd .sep{width:1px;height:20px;background:rgba(255,255,255,.16)}
   .hd .tit{font-size:15px;font-weight:350;letter-spacing:.3px;opacity:.92}
-  .nav{display:flex;gap:4px;margin-left:14px;background:rgba(255,255,255,.08);padding:3px;border-radius:9px}
+  .nav{display:flex;flex-wrap:wrap;gap:4px;margin-left:14px;background:rgba(255,255,255,.08);padding:3px;border-radius:9px}
+  /* 5 itens no menu nao cabem em 375px: no celular a nav desce e ocupa a linha */
+  @media(max-width:560px){.nav{margin-left:0;width:100%;justify-content:center}}
   .nav a,.nav span.on{font:600 12px var(--fonte);padding:5px 12px;border-radius:7px;text-decoration:none;
     color:#D9D2C8;transition:background .15s,color .15s}
   .nav a:hover{background:rgba(255,255,255,.13);color:#fff}
@@ -203,7 +208,7 @@
   <div class="hd">
     <span class="logo"></span><span class="marca">DOT</span><span class="sep"></span>
     <span class="tit">Tasks</span>
-    <nav class="nav"><span class="on">Tasks</span><a href="batimento.html">Batimento</a><a href="cerebro.html">Cérebro</a></nav>
+    <nav class="nav"><span class="on">Tasks</span><a href="batimento.html">Batimento</a><a href="cerebro.html">Cérebro</a><a href="vetorial.html">Vetorial</a><a href="duvidas.html">Dúvidas</a></nav>
     <span class="hoje"><span class="live-dot"></span><span id="hd-data"></span>
       <button class="sair" onclick="sair()" title="sair">sair</button></span>
   </div>

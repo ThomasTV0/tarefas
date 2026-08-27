@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="pt-br"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23F79D63' fill-opacity='.22'/%3E%3Ccircle cx='16' cy='16' r='9.5' fill='%23F79D63'/%3E%3C/svg%3E">
+<title>Dúvidas — DOT</title>
+<style>
+  :root{
+    --grafite:#2B2724;--grafite-2:#4A433D;--grafite-3:#6B635B;
+    --laranja:#F79D63;--laranja-forte:#E8823F;--laranja-escuro:#B05C1F;--laranja-tint:#FBEADB;
+    --acento-texto:#A9501E;                 /* laranja legível como TEXTO (5,2:1 no canvas) */
+    --bg:#F3F0EB;--card:#FFF;--suave:#FAF8F5;--borda:#E6E0D8;--borda-2:#D9D2C8;
+    --texto:#26221F;--texto-sec:#6E655C;--ok:#3E7C52;--err:#B3402A;
+    --r:10px;--r-sm:7px;
+    --fonte:'Segoe UI Variable Text','Segoe UI',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}html,body{height:100%}
+  body{margin:0;font-family:var(--fonte);color:var(--texto);background:var(--bg);
+    display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+
+  /* ── header: idêntico às outras abas (assinatura da família) ── */
+  .hd{background:linear-gradient(135deg,#262220,#332D28 70%,#3B332C);color:#fff;padding:16px 26px 15px;
+    display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+  .hd .logo{width:15px;height:15px;border-radius:50%;background:var(--laranja);
+    box-shadow:0 0 0 5px rgba(247,157,99,.16),0 0 18px rgba(247,157,99,.5)}
+  .hd .marca{font-size:15px;font-weight:800;letter-spacing:4px}
+  .hd .sep{width:1px;height:20px;background:rgba(255,255,255,.16)}
+  .hd .tit{font-size:15px;font-weight:350;letter-spacing:.3px;opacity:.92}
+  .nav{display:flex;flex-wrap:wrap;gap:4px;margin-left:14px;background:rgba(255,255,255,.08);padding:3px;border-radius:9px}
+  /* 5 itens no menu nao cabem em 375px: no celular a nav desce e ocupa a linha */
+  @media(max-width:560px){.nav{margin-left:0;width:100%;justify-content:center}}
+  .nav a,.nav span{font:600 12px var(--fonte);padding:5px 12px;border-radius:7px;text-decoration:none;
+    color:#D9D2C8;transition:background .15s,color .15s}
+  .nav a:hover{background:rgba(255,255,255,.13);color:#fff}
+  .nav .on{background:var(--laranja);color:#3A2A1C}
+  .hd .dir{margin-left:auto;font-size:12.5px;color:var(--laranja);font-weight:600;display:flex;align-items:center;gap:10px}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--laranja);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .hd .sair{background:rgba(255,255,255,.12);color:#EFEAE4;border:none;border-radius:8px;padding:5px 11px;
+    font:600 12px var(--fonte);cursor:pointer}
+  .hd .sair:hover{background:rgba(255,255,255,.22)}
+  .modo{font:600 10.5px var(--fonte);letter-spacing:.7px;text-transform:uppercase;
+    color:#C9C0B6;background:rgba(255,255,255,.09);border-radius:6px;padding:3px 8px}
+
+  /* ── corpo ── */
+  .wrap{width:100%;max-width:880px;margin:0 auto;padding:30px 24px 60px;flex:1}
+
+  /* cadernos — a única linha com cor de acento */
+  .cads{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 22px;
+    border-bottom:1px solid var(--borda);padding-bottom:0}
+  .cad{background:none;border:none;padding:0 0 9px;margin:0;cursor:pointer;font:450 14px var(--fonte);
+    color:var(--texto-sec);border-bottom:2px solid transparent;margin-bottom:-1px;
+    display:inline-flex;align-items:baseline;gap:6px;transition:color .12s}
+  .cad:hover{color:var(--texto)}
+  .cad .n{font-size:11.5px;font-weight:600;color:var(--borda-2)}
+  .cad.on{color:var(--texto);font-weight:650;border-bottom-color:var(--laranja)}
+  .cad.on .n{color:var(--acento-texto)}
+  .cad .x{font-size:13px;color:var(--borda-2);padding:0 2px;border-radius:4px}
+  .cad .x:hover{color:var(--err)}
+  .cads .acoes{margin-left:auto;display:flex;gap:16px;padding-bottom:9px}
+  .txtbtn{background:none;border:none;padding:0;margin:0;cursor:pointer;
+    font:500 12.5px var(--fonte);color:var(--texto-sec);text-decoration:none}
+  .txtbtn:hover{color:var(--acento-texto)}
+  .txtbtn.forte{color:var(--acento-texto);font-weight:600}
+
+  /* linha de pessoas — filtro transversal */
+  .pes{display:flex;flex-wrap:wrap;gap:0 18px;margin-top:13px;font-size:12.5px;color:var(--texto-sec)}
+  .pes button{background:none;border:none;padding:2px 0;margin:0;cursor:pointer;
+    font:450 12.5px var(--fonte);color:var(--texto-sec)}
+  .pes button:hover{color:var(--texto)}
+  .pes button.on{color:var(--acento-texto);font-weight:650}
+  .pes button b{font-weight:600;color:var(--borda-2);margin-left:5px;font-size:11px}
+  .pes button.on b{color:var(--acento-texto)}
+  .pes .rot{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--borda-2);
+    align-self:center;font-weight:600}
+
+  /* nova dúvida */
+  .nova{display:flex;gap:10px;margin-top:24px;align-items:stretch}
+  .nova input{flex:1;font:450 14px var(--fonte);color:var(--texto);background:transparent;
+    border:none;border-bottom:1px solid var(--borda-2);padding:9px 2px;outline:none;min-width:0}
+  .nova input::placeholder{color:var(--borda-2)}
+  .nova input:focus{border-bottom-color:var(--laranja)}
+  .nova .quem{flex:0 0 120px}
+  @media(max-width:640px){.nova{flex-wrap:wrap}.nova .quem{flex:1 1 100%}}
+
+  /* lista */
+  .lista{margin-top:8px}
+  .d{border-bottom:1px solid var(--borda);padding:15px 0 14px;cursor:pointer;
+    display:grid;grid-template-columns:1fr auto;gap:4px 18px;align-items:baseline}
+  .d:hover .tt{color:#000}
+  .d .tt{font-size:14.5px;font-weight:500;line-height:1.45;color:var(--texto)}
+  .d .meta{grid-column:1;font-size:12px;color:var(--texto-sec);margin-top:3px}
+  .d .meta i{font-style:normal;color:var(--borda-2);margin:0 6px}
+  .d .quem{grid-row:1;grid-column:2;font-size:11.5px;font-weight:650;letter-spacing:.5px;
+    text-transform:uppercase;color:var(--acento-texto);white-space:nowrap}
+  .d .quem.vazio{color:var(--borda-2);font-weight:500;text-transform:none;letter-spacing:0}
+  .d.resp{opacity:.5}
+  .d.resp .tt{font-weight:450}
+  .d.perg .tt::after{content:'perguntada';font-size:10.5px;font-weight:600;letter-spacing:.7px;
+    text-transform:uppercase;color:var(--texto-sec);margin-left:9px;white-space:nowrap}
+  @media(max-width:640px){
+    .d{grid-template-columns:1fr}
+    .d .quem{grid-row:auto;grid-column:1;margin-top:5px}
+  }
+
+  /* detalhe aberto */
+  .det{grid-column:1/-1;display:none;margin-top:11px;padding:12px 15px;background:var(--suave);
+    border-left:2px solid var(--borda-2);border-radius:0 var(--r-sm) var(--r-sm) 0;
+    font-size:13px;line-height:1.6;color:var(--texto-sec)}
+  .d.aberto .det{display:block}
+  .d.aberto .tt{font-weight:600}
+  .det .resposta{color:var(--texto);border-left:2px solid var(--ok);padding-left:11px;margin-top:10px}
+  .det a{color:var(--acento-texto);text-decoration:none;border-bottom:1px solid var(--laranja-tint)}
+  .det a:hover{border-bottom-color:var(--laranja)}
+  .det .barra{display:flex;flex-wrap:wrap;gap:14px;margin-top:13px;padding-top:11px;
+    border-top:1px solid var(--borda)}
+
+  .vazio-lista{padding:44px 0;text-align:center;color:var(--texto-sec);font-size:13.5px}
+  .rod{margin-top:30px;font-size:11.5px;color:var(--borda-2);display:flex;gap:16px;flex-wrap:wrap}
+  .rod code{background:var(--suave);border:1px solid var(--borda);border-radius:5px;
+    padding:1px 6px;font-size:10.5px;color:var(--texto-sec)}
+
+  /* gate de login (só no modo nuvem) */
+  #gate,#app{display:none}#gate.show,#app.show{display:block}
+  #app.show{display:flex;flex-direction:column;flex:1}
+  #gate.show{display:flex;align-items:center;justify-content:center;flex:1;padding:24px}
+  .gcard{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);
+    padding:30px 32px;max-width:380px;width:100%}
+  .gcard h1{margin:0 0 8px;font-size:19px;font-weight:700}
+  .gcard p{margin:0 0 18px;font-size:13px;color:var(--texto-sec);line-height:1.55}
+  .gcard input{width:100%;font:450 14px var(--fonte);border:1px solid var(--borda-2);
+    border-radius:var(--r-sm);padding:10px 12px;outline:none;margin-bottom:11px}
+  .gcard input:focus{border-color:var(--laranja)}
+  .gcard button{width:100%;font:650 14px var(--fonte);background:var(--grafite);color:#fff;
+    border:none;border-radius:var(--r-sm);padding:11px;cursor:pointer}
+  .gcard button:hover{background:var(--grafite-2)}
+  #g-msg{font-size:12.5px;margin-top:11px;min-height:18px}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(14px);
+    background:var(--grafite);color:#fff;font-size:13px;padding:10px 18px;border-radius:var(--r-sm);
+    z-index:200;opacity:0;visibility:hidden;transition:opacity .2s,transform .2s,visibility .2s}
+  .toast.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+</style>
+</head><body>
+
+<div id="gate">
+  <div class="gcard">
+    <h1>Dúvidas</h1>
+    <p>Entre com o seu e-mail da Dot — chega um link de acesso.</p>
+    <input id="g-email" type="email" placeholder="nome@dot.com.br" autocomplete="email">
+    <button data-acao="enviarLink">Receber link</button>
+    <div id="g-msg"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="hd">
+    <div class="logo"></div><div class="marca">DOT</div><div class="sep"></div>
+    <div class="tit">Dúvidas</div>
+    <nav class="nav"><a href="index.html">Tasks</a><a href="batimento.html">Batimento</a><a href="cerebro.html">Cérebro</a><a href="vetorial.html">Vetorial</a><span class="on">Dúvidas</span></nav>
+    <div class="dir" id="hd-dir"></div>
+  </div>
+
+  <div class="wrap">
+    <div class="cads" id="cads"></div>
+    <div class="pes" id="pes"></div>
+
+    <div class="nova">
+      <input id="nv-tit" placeholder="nova dúvida…" autocomplete="off"
+             onkeydown="if(event.key==='Enter')criar()">
+      <input id="nv-quem" class="quem" placeholder="com quem?" autocomplete="off"
+             onkeydown="if(event.key==='Enter')criar()">
+    </div>
+
+    <div class="lista" id="lista"></div>
+
+    <div class="rod">
+      <span>Lista local: <code>dados/duvidas.json</code></span>
+      <span>CLI: <code>py duvidas_cli.py add "…" --book cata-milho --quem B2</code></span>
+      <span id="rod-upd"></span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   Dois modos, uma página só:
+     LOCAL  — servida por painel_duvidas.py em 127.0.0.1: lê e escreve
+              o dados/duvidas.json pela API do próprio servidor. Sem login.
+     NUVEM  — servida pelo GitHub Pages: Supabase + magic link + RLS.
+   O modo é deduzido do host, então não há placeholder para o deploy trocar.
+   ═══════════════════════════════════════════════════════════════ */
+const PREVIEW = !!window.__PREVIEW__;          /* arquivo solto p/ revisão de design */
+const LOCAL = PREVIEW || /^(127\.0\.0\.1|localhost|\[::1\])$/.test(location.hostname);
+const SB_URL='https://suhmrwjqlzvfjbagyvif.supabase.co', SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1aG1yd2pxbHp2ZmpiYWd5dmlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNjczOTIsImV4cCI6MjA5ODk0MzM5Mn0.uDjetAxk1Z7b__48860J1llHPH5j1hbhVTgr7K2Tj4A';
+const sb = LOCAL ? null : window.supabase.createClient(SB_URL, SB_ANON,
+  {auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}});
+
+const STATUS = ['aberta','perguntada','respondida','arquivada'];
+const SLABEL = {aberta:'reabrir', perguntada:'marcar perguntada', respondida:'marcar respondida'};
+
+let BOOKS=[], DUV=[], FILTRO_BOOK='todas', FILTRO_QUEM=null, VER_RESP=false, ABERTA=null, EDIT_CAD=false;
+
+const $=s=>document.getElementById(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* Data LOCAL, nao UTC: toISOString() faz o dia virar as 21h no BRT, e a mesma
+   duvida nascia '27/08' na nuvem e '26/08' no espelho (o io carimba com
+   date.today() do Python, que e local). */
+const hoje=()=>{const d=new Date();return d.getFullYear()+'-'+
+  String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+function fmtBR(iso){if(!iso)return '';const p=String(iso).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}`:'';}
+function slugify(s){return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,40).replace(/^-+|-+$/g,'')||'caderno';}
+function novoId(){let h='';for(let i=0;i<6;i++)h+='0123456789abcdef'[Math.floor(Math.random()*16)];return 'd-'+h;}
+
+/* ── camada de dados: as três implementações expõem a mesma interface ── */
+/* preview: tudo em memória, some ao recarregar — serve só para olhar o desenho */
+const apiPreview = {
+  async carregar(){ const d=window.__PREVIEW__; BOOKS=d.books||[]; DUV=d.duvidas||[]; },
+  async criarBook(b){ window.__PREVIEW__.books.push(b); return b; },
+  async apagarBook(slug){ const d=window.__PREVIEW__;
+    d.books=d.books.filter(b=>b.slug!==slug);
+    d.duvidas.forEach(x=>{ if(x.book===slug) x.book=''; }); },
+  async criarDuvida(x){ window.__PREVIEW__.duvidas.unshift(x); },
+  async patchDuvida(id,patch){ const x=window.__PREVIEW__.duvidas.find(y=>y.id===id); if(x)Object.assign(x,patch); },
+  async apagarDuvida(id){ const d=window.__PREVIEW__; d.duvidas=d.duvidas.filter(y=>y.id!==id); },
+};
+
+const api = PREVIEW ? apiPreview : LOCAL ? {
+  async carregar(){
+    let d;
+    try{
+      const r = await fetch('/api/dados');
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      d = await r.json();
+    }catch(e){ toast('Não consegui ler o espelho local: '+e.message); return; }
+    /* O io devolve doc VAZIO com _corrompido quando não conseguiu ler o arquivo.
+       Sem esta checagem a tela dizia "Nenhuma dúvida ainda" — como se tudo
+       tivesse sido apagado — enquanto o JSON estava lá, só ilegível naquele
+       instante. Preserva o que já estava na tela em vez de zerar. */
+    if(d && d._corrompido){
+      toast('dados/duvidas.json ilegível — restaure o .bak ao lado. Nada foi alterado.');
+      return;
+    }
+    BOOKS = d.books||[]; DUV = d.duvidas||[];
+  },
+  async criarBook(b){ const r = await post('/api/book', b); return (r && r.r) || b; },
+  async apagarBook(slug){ await post('/api/book/rm', {slug}); },
+  async criarDuvida(d){ await post('/api/duvida', d); },
+  async patchDuvida(id, patch){ await post('/api/duvida/patch', {id, patch}); },
+  async apagarDuvida(id){ await post('/api/duvida/rm', {id}); },
+} : {
+  async carregar(){
+    const [b,d] = await Promise.all([
+      sb.from('duvidas_books').select('*').order('ordem'),
+      sb.from('duvidas').select('*').order('criado_em',{ascending:false})]);
+    if(b.error||d.error){
+      const e=b.error||d.error;
+      toast(/does not exist|schema cache/i.test(e.message)
+        ? 'Tabelas não criadas — rode sql/schema_duvidas.sql no Supabase.'
+        : 'Erro ao carregar: '+e.message);
+      return;
+    }
+    BOOKS=b.data||[]; DUV=d.data||[];
+  },
+  async criarBook(b){ const {data,error}=await sb.from('duvidas_books').insert(b).select().single();
+    if(error)throw error; return data || b; },
+  async apagarBook(slug){ const {error}=await sb.from('duvidas_books').delete().eq('slug',slug); if(error)throw error; },
+  async criarDuvida(d){ const {error}=await sb.from('duvidas').insert(d); if(error)throw error; },
+  async patchDuvida(id,patch){ const {error}=await sb.from('duvidas').update(patch).eq('id',id); if(error)throw error; },
+  async apagarDuvida(id){ const {error}=await sb.from('duvidas').delete().eq('id',id); if(error)throw error; },
+};
+
+async function post(url, body){
+  const r = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json().catch(()=>({}));
+}
+
+async function recarregar(){
+  await api.carregar();
+  /* Mais nova em cima. Empate no dia decide pelo carimbo de atualização, e
+     empate nos dois preserva a ordem do arquivo (sort é estável) — assim o
+     espelho local e o Supabase mostram a MESMA sequência, apesar de o io
+     acrescentar no fim do array e o PostgREST devolver em criado_em desc.
+
+     O carimbo NÃO pode ser comparado como string: o duvidas_io grava horário
+     local ingênuo ('2026-08-26T17:35:00', sem offset) e o PostgREST devolve
+     UTC ('2026-08-26T20:11:32+00:00'). Comparando texto, a mesma edição
+     AFUNDAVA no modo local e SUBIA na nuvem. new Date() resolve os dois: sem
+     offset ele lê como hora local (que é o que o Python gravou), com offset
+     lê como absoluto. */
+  const ms = v => { const t = Date.parse(v||''); return isNaN(t) ? 0 : t; };
+  DUV.sort((a,b)=> String(b.criado_em||'').localeCompare(String(a.criado_em||''))
+                || (ms(b.atualizado_em) - ms(a.atualizado_em)));
+  render();
+}
+
+/* ── seleção corrente ── */
+function visiveis(){
+  return DUV.filter(d=>{
+    if(d.status==='arquivada') return false;
+    if(!VER_RESP && d.status==='respondida') return false;
+    if(FILTRO_BOOK!=='todas' && (d.book||'')!==FILTRO_BOOK) return false;
+    if(FILTRO_QUEM!==null && (d.quem||'')!==FILTRO_QUEM) return false;
+    return true;
+  });
+}
+const abertas = d => d.status!=='respondida' && d.status!=='arquivada';
+
+/* ── render ── */
+function render(){
+  /* O caderno filtrado pode ter sumido por baixo: apagado noutra aba, pelo CLI,
+     ou por um evento de realtime. Sem isto a tela ficava em "Nada aqui com esse
+     filtro" para sempre, sem nenhuma aba marcada e sem pista do motivo. */
+  if(FILTRO_BOOK !== 'todas' && FILTRO_BOOK !== '' && !BOOKS.some(b=>b.slug===FILTRO_BOOK))
+    FILTRO_BOOK = 'todas';
+  const ativas = DUV.filter(abertas);
+
+  /* cadernos */
+  const semCad = ativas.filter(d=>!d.book).length;
+  let h = `<button class="cad ${FILTRO_BOOK==='todas'?'on':''}" data-acao="verBook" data-arg="todas">Todas
+             <span class="n">${ativas.length}</span></button>`;
+  h += BOOKS.filter(b=>!b.arquivado).map(b=>{
+    const n = ativas.filter(d=>d.book===b.slug).length;
+    return `<button class="cad ${FILTRO_BOOK===b.slug?'on':''}" data-acao="verBook" data-arg="${esc(b.slug)}"
+              title="${esc(b.descricao||'')}">${esc(b.nome)}<span class="n">${n}</span>${
+              EDIT_CAD?`<span class="x" data-acao="apagarBook" data-arg="${esc(b.slug)}">×</span>`:''}</button>`;
+  }).join('');
+  if(semCad) h += `<button class="cad ${FILTRO_BOOK===''?'on':''}" data-acao="verBook" data-arg="">sem caderno
+                     <span class="n">${semCad}</span></button>`;
+  h += `<span class="acoes">
+          <button class="txtbtn forte" data-acao="novoBook">+ caderno</button>
+          <button class="txtbtn" data-acao="editarCadernos">${EDIT_CAD?'pronto':'editar'}</button>
+        </span>`;
+  $('cads').innerHTML = h;
+
+  /* pessoas */
+  const porQuem = {};
+  ativas.forEach(d=>{ const q=d.quem||''; porQuem[q]=(porQuem[q]||0)+1; });
+  const nomes = Object.keys(porQuem).filter(q=>q).sort((a,b)=>porQuem[b]-porQuem[a]);
+  let p = `<span class="rot">perguntar a</span>`;
+  p += nomes.map(q=>`<button class="${FILTRO_QUEM===q?'on':''}" data-acao="verQuem" data-arg="${esc(q)}">${esc(q)}<b>${porQuem[q]}</b></button>`).join('');
+  if(porQuem['']) p += `<button class="${FILTRO_QUEM===''?'on':''}" data-acao="verQuem" data-arg="">sem dono<b>${porQuem['']}</b></button>`;
+  const nResp = DUV.filter(d=>d.status==='respondida').length;
+  p += `<button style="margin-left:auto" class="${VER_RESP?'on':''}"
+          data-acao="verRespondidas">respondidas<b>${nResp}</b></button>`;
+  $('pes').innerHTML = nomes.length||porQuem['']||nResp ? p : '';
+
+  /* placeholder do input reflete o caderno corrente */
+  const bAtual = BOOKS.find(b=>b.slug===FILTRO_BOOK);
+  $('nv-tit').placeholder = bAtual ? `nova dúvida em ${bAtual.nome.toLowerCase()}…` : 'nova dúvida…';
+
+  /* lista */
+  const vis = visiveis();
+  if(!vis.length){
+    $('lista').innerHTML = `<div class="vazio-lista">${
+      DUV.length ? 'Nada aqui com esse filtro.' : 'Nenhuma dúvida ainda — escreva uma acima.'}</div>`;
+  } else {
+    $('lista').innerHTML = vis.map(d=>{
+      const b = BOOKS.find(x=>x.slug===d.book);
+      const meta = [b?b.nome:'sem caderno', d.cliente, fmtBR(d.criado_em)].filter(Boolean)
+        .map(esc).join('<i>·</i>');
+      const cls = ['d', d.status==='respondida'?'resp':'', d.status==='perguntada'?'perg':'',
+                   ABERTA===d.id?'aberto':''].filter(Boolean).join(' ');
+      const id = esc(d.id);
+      return `<div class="${cls}" data-acao="abrir" data-arg="${id}">
+        <div class="tt">${esc(d.titulo)}</div>
+        <div class="quem ${d.quem?'':'vazio'}">${d.quem?esc(d.quem):'—'}</div>
+        <div class="meta">${meta}</div>
+        <div class="det">
+          ${d.detalhe?`<div>${esc(d.detalhe)}</div>`:'<div style="color:var(--borda-2)">sem detalhe</div>'}
+          ${d.link?`<div style="margin-top:9px"><a href="${linkVault(d.link)}">${esc(d.link)} ↗</a></div>`:''}
+          ${d.resposta?`<div class="resposta">${esc(d.resposta)}</div>`:''}
+          <div class="barra">
+            ${d.status!=='perguntada'?`<button class="txtbtn" data-acao="mv" data-arg="${id}" data-arg2="perguntada">marcar perguntada</button>`:''}
+            ${d.status!=='respondida'
+              ?`<button class="txtbtn forte" data-acao="responder" data-arg="${id}">responder</button>`
+              :`<button class="txtbtn" data-acao="mv" data-arg="${id}" data-arg2="aberta">reabrir</button>`}
+            <button class="txtbtn" data-acao="mudarQuem" data-arg="${id}">com quem</button>
+            <button class="txtbtn" data-acao="mudarBook" data-arg="${id}">mover</button>
+            <button class="txtbtn" style="margin-left:auto" data-acao="excluir" data-arg="${id}">excluir</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  $('rod-upd').textContent = `${DUV.filter(abertas).length} em aberto`;
+  $('hd-dir').innerHTML = LOCAL
+    ? `<span class="modo">${PREVIEW?'prévia':'local'}</span>`
+    : `<span class="live-dot"></span><span>ao vivo</span><button class="sair" data-acao="sair">sair</button>`;
+}
+
+function linkVault(l){
+  /* Só dois destinos são aceitos: http(s) e o vault. Qualquer outra coisa
+     (javascript:, data:, vbscript:) vira link do vault — o texto continua
+     visível, mas não existe href executável vindo do banco. */
+  if(/^https?:\/\//i.test(l)) return esc(l);
+  return 'obsidian://open?vault=' + encodeURIComponent('Cerebro Dot') + '&file=' + encodeURIComponent(l);
+}
+
+/* ── despachante de eventos ──────────────────────────────────
+   Nada de onclick inline. O valor de `quem` é texto livre digitado pelo
+   usuário e, dentro de onclick="verQuem('...')", o parser HTML decodifica
+   &#39; de volta para aspa e o conteúdo vira JS — esc() não protege contexto
+   de script. Aqui o valor viaja em data-arg (contexto de atributo, onde
+   esc() basta) e é lido por dataset, nunca avaliado.
+   Bônus: um nome legítimo com apóstrofo (O'Brien) parava o filtro; agora não. */
+const ACOES = {
+  verBook:        el => verBook(el.dataset.arg),
+  verQuem:        el => verQuem(el.dataset.arg),
+  verRespondidas: () => { VER_RESP = !VER_RESP; render(); },
+  editarCadernos: () => { EDIT_CAD = !EDIT_CAD; render(); },
+  novoBook:       () => novoBook(),
+  apagarBook:     el => apagarBook(el.dataset.arg),
+  abrir:          el => abrir(el.dataset.arg),
+  mv:             el => mv(el.dataset.arg, el.dataset.arg2),
+  responder:      el => responder(el.dataset.arg),
+  mudarQuem:      el => mudarQuem(el.dataset.arg),
+  mudarBook:      el => mudarBook(el.dataset.arg),
+  excluir:        el => excluir(el.dataset.arg),
+  enviarLink:     () => enviarLink(),
+  sair:           () => sair(),
+};
+
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('[data-acao]');
+  if(!el) return;
+  /* clique no corpo do detalhe não fecha a linha — só o cabeçalho alterna */
+  if(el.dataset.acao === 'abrir' && ev.target.closest('.det')) return;
+  const fn = ACOES[el.dataset.acao];
+  if(fn) fn(el);
+});
+
+/* ── interações ── */
+function verBook(s){ FILTRO_BOOK=s; ABERTA=null; render(); }
+function verQuem(q){ FILTRO_QUEM = FILTRO_QUEM===q ? null : q; ABERTA=null; render(); }
+function abrir(id){ ABERTA = ABERTA===id ? null : id; render(); }
+
+async function criar(){
+  const titulo = $('nv-tit').value.trim();
+  if(!titulo){ $('nv-tit').focus(); return; }
+  const book = (FILTRO_BOOK==='todas'||FILTRO_BOOK==='') ? '' : FILTRO_BOOK;
+  const d = {id:novoId(), book, titulo, detalhe:'', status:'aberta',
+             quem:$('nv-quem').value.trim(), cliente:'', link:'',
+             criado_em:hoje(), resposta:''};
+  try{
+    await api.criarDuvida(d);
+    $('nv-tit').value=''; $('nv-quem').value=''; $('nv-tit').focus();
+    await recarregar(); toast('anotada');
+  }catch(e){ toast('não salvou: '+e.message); }
+}
+
+async function mv(id, status){
+  /* Espelha a regra do duvidas_io (validar_duvida): 'respondida' carimba a data,
+     sair para aberta/perguntada limpa, 'arquivada' preserva — e a RESPOSTA fica
+     em todos os casos, que é histórico. Sem isto, o mesmo botão deixava estados
+     diferentes nos dois modos: no local o io zerava respondida_em, na nuvem o
+     UPDATE tocava só a coluna status e a data de quando a B2 respondeu ficava. */
+  const patch = {status};
+  if(status==='respondida') patch.respondida_em = hoje();
+  if(status==='aberta' || status==='perguntada') patch.respondida_em = null;
+  try{ await api.patchDuvida(id, patch); await recarregar(); }
+  catch(e){ toast('não salvou: '+e.message); }
+}
+
+async function responder(id){
+  const d = DUV.find(x=>x.id===id);
+  const r = prompt('Resposta (pode deixar em branco):', d && d.resposta || '');
+  if(r===null) return;
+  try{
+    await api.patchDuvida(id, {status:'respondida', resposta:r, respondida_em:hoje()});
+    await recarregar(); toast('respondida');
+  }catch(e){ toast('não salvou: '+e.message); }
+}
+
+async function mudarQuem(id){
+  const d = DUV.find(x=>x.id===id);
+  const q = prompt('Com quem checar?', d && d.quem || '');
+  if(q===null) return;
+  try{ await api.patchDuvida(id, {quem:q.trim()}); await recarregar(); }
+  catch(e){ toast('não salvou: '+e.message); }
+}
+
+async function mudarBook(id){
+  const d = DUV.find(x=>x.id===id);
+  const nomes = BOOKS.filter(b=>!b.arquivado).map(b=>b.nome).join(', ');
+  const r = prompt(`Mover para qual caderno?\n(${nomes})\nem branco = sem caderno`,
+                   (BOOKS.find(b=>b.slug===d.book)||{}).nome || '');
+  if(r===null) return;
+  const alvo = BOOKS.find(b=>b.nome.toLowerCase()===r.trim().toLowerCase() || b.slug===slugify(r));
+  if(r.trim() && !alvo){ toast('caderno não encontrado'); return; }
+  try{ await api.patchDuvida(id, {book: alvo?alvo.slug:''}); await recarregar(); }
+  catch(e){ toast('não salvou: '+e.message); }
+}
+
+async function excluir(id){
+  const d = DUV.find(x=>x.id===id);
+  if(!confirm('Excluir esta dúvida?\n\n' + (d?d.titulo:''))) return;
+  try{ await api.apagarDuvida(id); ABERTA=null; await recarregar(); toast('excluída'); }
+  catch(e){ toast('não excluiu: '+e.message); }
+}
+
+async function novoBook(){
+  const nome = prompt('Nome do caderno:');
+  if(!nome || !nome.trim()) return;
+  const slug = slugify(nome);
+  if(BOOKS.some(b=>b.slug===slug)){ toast('já existe um caderno com esse nome'); return; }
+  const ordem = BOOKS.reduce((m,b)=>Math.max(m,b.ordem||0),0)+1;
+  try{
+    const criado = await api.criarBook({slug, nome:nome.trim(), cor:'', descricao:'', ordem,
+                         arquivado:false, criado_em:hoje()});
+    /* o slug que vale e o que o backend gravou — o slugify daqui e so um palpite
+       (o duvidas_io corta em 48, este em 40, e ele resolve colisao com -2/-3) */
+    FILTRO_BOOK = (criado && criado.slug) || slug;
+    await recarregar(); toast('caderno criado');
+  }catch(e){ toast('não criou: '+e.message); }
+}
+
+async function apagarBook(slug){
+  const b = BOOKS.find(x=>x.slug===slug);
+  const n = DUV.filter(d=>d.book===slug && abertas(d)).length;
+  const aviso = n ? `\n\nAs ${n} dúvidas dele ficam sem caderno (não somem).` : '';
+  if(!confirm(`Apagar o caderno "${b?b.nome:slug}"?${aviso}`)) return;
+  try{
+    await api.apagarBook(slug);
+    if(FILTRO_BOOK===slug) FILTRO_BOOK='todas';
+    await recarregar(); toast('caderno apagado');
+  }catch(e){ toast('não apagou: '+e.message); }
+}
+
+/* ── auth (só nuvem) ── */
+/* A página fica numa URL pública e adivinhável. signInWithOtp CRIA usuário por
+   padrão: um estranho digitava o gmail dele, virava `authenticated` no MESMO
+   projeto Supabase e daí lia as tabelas vizinhas cuja policy é `using (true)`
+   (catálogo de contas do batimento, cerebro_projetos, vetorial). As tabelas de
+   dúvidas em si estão certas — RLS por owner —, mas o convite era grátis.
+   Agora: só domínio da Dot e sem criar conta nova. */
+const DOMINIO_OK = /@dot\.com\.br$/i;
+
+async function enviarLink(){
+  const email=$('g-email').value.trim();
+  if(!email){$('g-msg').textContent='Digite seu e-mail.';return;}
+  if(!DOMINIO_OK.test(email)){
+    $('g-msg').style.color='var(--err)';
+    $('g-msg').textContent='Use o seu e-mail @dot.com.br.';
+    return;
+  }
+  $('g-msg').style.color='var(--texto-sec)';$('g-msg').textContent='Enviando…';
+  const {error}=await sb.auth.signInWithOtp({email,options:{
+    shouldCreateUser:false, emailRedirectTo:location.href.split('#')[0]}});
+  if(error){$('g-msg').style.color='var(--err)';$('g-msg').textContent='Erro: '+error.message;}
+  else{$('g-msg').style.color='var(--ok)';$('g-msg').textContent='Link enviado. Abra neste dispositivo.';}
+}
+async function sair(){await sb.auth.signOut();location.reload();}
+
+function realtime(){
+  sb.channel('rt-duvidas')
+    .on('postgres_changes',{event:'*',schema:'public',table:'duvidas'},recarregar)
+    .on('postgres_changes',{event:'*',schema:'public',table:'duvidas_books'},recarregar)
+    .subscribe();
+}
+
+/* ── boot ── */
+function mostrarApp(){$('gate').classList.remove('show');$('app').classList.add('show');}
+function mostrarLogin(){$('app').classList.remove('show');$('gate').classList.add('show');}
+
+if(LOCAL){
+  mostrarApp();
+  recarregar();
+}else{
+  sb.auth.onAuthStateChange((_e,s)=>{ if(s){mostrarApp();recarregar();realtime();} else mostrarLogin(); });
+  (async()=>{const {data:{session}}=await sb.auth.getSession();
+    if(session){mostrarApp();recarregar();realtime();} else mostrarLogin();})();
+}
+</script>
+</body></html>
