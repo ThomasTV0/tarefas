@@ -192,6 +192,11 @@
       <span>Lista local: <code>dados/duvidas.json</code></span>
       <span>CLI: <code>py duvidas_cli.py add "…" --book cata-milho --quem B2</code></span>
       <span id="rod-upd"></span>
+      <!-- O Pages manda Cache-Control: max-age=600, então o navegador pode
+           segurar uma versão velha por 10 min e parecer que a correção não
+           saiu. document.lastModified vem do header da própria página: se este
+           carimbo estiver velho, é cache — Ctrl+Shift+R resolve. -->
+      <span id="rod-versao" title="quando esta versão da página foi publicada"></span>
     </div>
   </div>
 </div>
@@ -420,6 +425,10 @@ function render(){
   }
 
   $('rod-upd').textContent = `${DUV.filter(abertas).length} em aberto`;
+  const lm = new Date(document.lastModified);
+  $('rod-versao').textContent = isNaN(lm) ? '' :
+    `versão de ${String(lm.getDate()).padStart(2,'0')}/${String(lm.getMonth()+1).padStart(2,'0')} `
+    + `${String(lm.getHours()).padStart(2,'0')}:${String(lm.getMinutes()).padStart(2,'0')}`;
   $('hd-dir').innerHTML = LOCAL
     ? `<span class="modo">${PREVIEW?'prévia':'local'}</span>`
     : `<span class="live-dot"></span><span>ao vivo</span><button class="sair" data-acao="sair">sair</button>`;
