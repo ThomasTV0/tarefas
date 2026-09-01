@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23F79D63' fill-opacity='.22'/%3E%3Ccircle cx='16' cy='16' r='9.5' fill='%23F79D63'/%3E%3C/svg%3E">
-<title>Cérebro vetorial — gate e saúde do corpus</title>
+<title>Cérebro vetorial</title>
 <style>
   :root{
     --grafite:#2B2724;--grafite-2:#4A433D;--grafite-3:#6B635B;
@@ -21,14 +21,13 @@
       radial-gradient(800px 300px at 95% -12%,rgba(247,157,99,.08),transparent 55%),var(--bg)}
   .hd{background:linear-gradient(135deg,#262220,#332D28 70%,#3B332C);color:#fff;padding:16px 26px 15px;
     display:flex;align-items:center;gap:13px;flex-wrap:wrap}
-  .hd .logo{width:15px;height:15px;border-radius:50%;background:var(--laranja);
+  .hd .logo{width:15px;height:15px;border-radius:50%;background:var(--laranja);flex:none;
     box-shadow:0 0 0 5px rgba(247,157,99,.16),0 0 18px rgba(247,157,99,.5)}
   .hd .marca{font-size:15px;font-weight:800;letter-spacing:4px}
   .hd .sep{width:1px;height:20px;background:rgba(255,255,255,.16)}
   .hd .tit{font-size:15px;font-weight:350;letter-spacing:.3px;opacity:.92}
   .nav{display:flex;flex-wrap:wrap;gap:4px;margin-left:14px;background:rgba(255,255,255,.08);padding:3px;border-radius:9px}
-  /* 5 itens no menu nao cabem em 375px: no celular a nav desce e ocupa a linha */
-  @media(max-width:560px){.nav{margin-left:0;width:100%;justify-content:center}}
+  @media(max-width:620px){.nav{margin-left:0;width:100%;justify-content:center}}
   .nav a,.nav span{font:600 12px var(--fonte);padding:5px 12px;border-radius:7px;text-decoration:none;
     color:#D9D2C8;transition:background .15s,color .15s}
   .nav a:hover{background:rgba(255,255,255,.13);color:#fff}
@@ -40,133 +39,175 @@
     font:600 12px var(--fonte);cursor:pointer}
   .hd .sair:hover{background:rgba(255,255,255,.22)}
   .wrap{padding:18px 26px 34px;display:flex;flex-direction:column;gap:16px;max-width:1320px;width:100%;margin:0 auto}
-  @media(max-width:560px){.wrap{padding:14px 13px 26px;gap:12px}}
-  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px}
-  .st{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);padding:12px 16px 11px;box-shadow:var(--sombra)}
-  .st .l{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--texto-sec)}
-  .st .n{font-size:29px;font-weight:750;line-height:1.12;letter-spacing:-.6px;margin-top:3px}
+  @media(max-width:620px){.wrap{padding:14px 13px 26px;gap:12px}}
+
+  /* ── tiles ── */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px}
+  .st{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);padding:12px 15px 11px;
+    box-shadow:var(--sombra);position:relative}
+  .st .l{font-size:11px;font-weight:700;letter-spacing:.2px;color:var(--texto-sec);padding-right:16px}
+  .st .n{font-size:31px;font-weight:750;line-height:1.1;letter-spacing:-.6px;margin-top:4px}
   .st .n small{font-size:15px;font-weight:600;color:var(--texto-sec)}
-  .st .f{font-size:11.5px;color:var(--texto-sec);margin-top:3px}
-  .st.bom .n{color:var(--ok)}.st.ruim .n{color:var(--err)}
-  .st.nm .n{color:var(--texto-sec)}          /* não medido */
-  .prog{height:5px;background:var(--borda);border-radius:99px;margin-top:9px;overflow:hidden}
-  .prog i{display:block;height:100%;background:var(--laranja);border-radius:99px}
+  .st .f{font-size:11.5px;color:var(--texto-sec);margin-top:2px}
+  .st.bom .n{color:var(--ok)}.st.ruim .n{color:var(--err)}.st.nm .n{color:var(--texto-sec)}
+  .st .x{position:absolute;top:7px;right:8px;width:19px;height:19px;border:none;border-radius:6px;
+    background:transparent;color:var(--borda-2);font:700 13px var(--fonte);cursor:pointer;line-height:1}
+  .st:hover .x{color:var(--texto-sec);background:var(--suave)}
+  .st .x:hover{color:var(--err);background:var(--err-bg)}
+  .st.add{border-style:dashed;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    color:var(--texto-sec);font:600 12.5px var(--fonte);min-height:84px;background:transparent}
+  .st.add:hover{border-color:var(--laranja);color:var(--laranja-escuro);background:var(--laranja-tint)}
+  .spark{display:flex;align-items:flex-end;gap:2px;height:22px;margin-top:8px}
+  .spark i{flex:1;background:var(--laranja-tint);border-radius:2px 2px 0 0;min-height:2px}
+  .spark i.on{background:var(--laranja)}
+
+  /* ── painéis ── */
+  .pn{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);padding:15px 18px 16px;box-shadow:var(--sombra)}
+  .pn h3{margin:0 0 13px;font-size:13.5px;font-weight:700;display:flex;flex-wrap:wrap;
+    justify-content:space-between;align-items:center;gap:4px 10px}
+  .pn h3 span{font-size:11.5px;font-weight:500;color:var(--texto-sec)}
   .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
   @media(max-width:900px){.grid2{grid-template-columns:1fr}}
-  .pn{background:var(--card);border:1px solid var(--borda);border-radius:var(--r);padding:15px 18px 16px;box-shadow:var(--sombra)}
-  .pn h3{margin:0 0 13px;font-size:13px;font-weight:700;letter-spacing:.2px;display:flex;
-    flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 10px}
-  .pn h3 span{font-size:11px;font-weight:500;color:var(--texto-sec);text-align:right}
-  .mini{display:flex;flex-direction:column;gap:7px}
-  .mrow{display:grid;grid-template-columns:minmax(0,1fr) 88px 52px;align-items:center;gap:9px;
-    font-size:12px;color:var(--texto-sec)}
-  .mrow>span:first-child{overflow-wrap:anywhere}
-  @media(max-width:420px){.mrow{grid-template-columns:minmax(0,1fr) 56px 44px;gap:7px}}
-  .trk{height:8px;background:var(--borda);border-radius:99px;overflow:hidden}
-  .trk i{display:block;height:100%;background:var(--grafite-3);border-radius:99px}
-  .trk i.al{background:var(--laranja)}
-  .trk i.rm{background:var(--err)}
-  .mrow b{text-align:right;color:var(--texto);font-size:12px;font-weight:700}
-  .mrow.tot{border-top:1px solid var(--borda);padding-top:7px;color:var(--texto);font-weight:650}
-  .nota{font-size:11px;color:var(--texto-sec);line-height:1.5;margin-top:12px;
-    background:var(--suave);border:1px solid var(--borda);border-left:3px solid var(--borda-2);
-    border-radius:0 8px 8px 0;padding:8px 12px}
-  .nota b{color:var(--texto);font-weight:650}
-  .nota code,.rod code,.det code{background:var(--card);border:1px solid var(--borda);border-radius:5px;
-    padding:1px 5px;font:10.5px var(--mono);overflow-wrap:anywhere}
 
-  /* ── o gate ── */
-  .gts{display:flex;flex-direction:column;gap:5px}
-  .gt{display:grid;grid-template-columns:40px minmax(0,1fr) 86px 40px 96px 96px;gap:10px;align-items:center;
-    font-size:12px;padding:8px 11px;border:1px solid var(--borda);border-radius:8px;background:var(--suave);
-    cursor:pointer}
-  .gt:hover{border-color:var(--borda-2)}
-  .gt:focus-visible{outline:2px solid var(--laranja-escuro);outline-offset:2px}
-  .gt.isgate{border-left:3px solid var(--laranja);background:var(--card)}
-  @media(max-width:820px){.gt{grid-template-columns:40px minmax(0,1fr) 86px;row-gap:6px}.gt .col-n,.gt .col-b,.gt .col-a{display:none}}
-  .gt .cod{font-weight:750;color:var(--grafite-2);font-size:12px}
-  .gt .cod em{display:block;font:700 8.5px var(--fonte);font-style:normal;letter-spacing:.7px;
-    color:var(--laranja-escuro)}
-  .gt .tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-  .pill{font:700 10px var(--fonte);text-transform:uppercase;letter-spacing:.6px;border-radius:99px;
-    padding:3px 9px;text-align:center;white-space:nowrap}
+  /* ── timeline (2 faixas) ── */
+  .faixa-rot{font:700 10.5px var(--fonte);text-transform:uppercase;letter-spacing:1px;
+    color:var(--texto-sec);margin:4px 0 8px}
+  .meses{display:grid;font-size:10.5px;font-weight:650;color:var(--texto-sec);
+    border-bottom:1px solid var(--borda);padding-bottom:5px;margin-bottom:9px;letter-spacing:.5px}
+  .meses span{text-align:center}
+  .tl{display:flex;flex-direction:column;gap:6px}
+  .it{display:grid;grid-template-columns:34px minmax(0,1fr) 178px;gap:10px;align-items:center}
+  @media(max-width:820px){.it{grid-template-columns:34px minmax(0,1fr)}.it .lado-dir{display:none}}
+  .it .cod{font:750 11.5px var(--fonte);color:var(--grafite-2)}
+  .pista{position:relative;height:28px;background:var(--suave);border:1px solid var(--borda);
+    border-radius:7px;overflow:hidden;cursor:pointer}
+  .pista .hoje{position:absolute;top:0;bottom:0;width:2px;background:var(--err);opacity:.55;z-index:2}
+  .barra{position:absolute;top:4px;height:20px;border-radius:5px;display:flex;align-items:center;
+    padding:0 9px;font:600 11px var(--fonte);color:#3A2A1C;white-space:nowrap;min-width:14px}
+  .barra .lbl{overflow:hidden;text-overflow:ellipsis}
+  .barra.curta .lbl{position:absolute;left:calc(100% + 7px);color:var(--texto-sec)}
+  .barra.todo{background:var(--borda-2);color:var(--grafite-2)}
+  .barra.doing{background:var(--laranja)}
+  .barra.done{background:var(--done);color:#F2F5F1}
+  .barra.blocked{background:var(--err-bg);border:1px solid var(--err);color:var(--err)}
+  .barra.cancel{background:transparent;border:1px dashed var(--borda-2);color:var(--texto-sec);text-decoration:line-through}
+  .barra .fill{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,.34);
+    border-radius:5px 0 0 5px;pointer-events:none}
+  .fase .barra{height:24px;top:2px;font-weight:700}
+  .lado-dir{display:flex;align-items:center;gap:7px;justify-content:flex-end}
+  .lado-dir .dono{font-size:11px;color:var(--texto-sec);max-width:78px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .sel{font:600 11px var(--fonte);border:1px solid var(--borda-2);border-radius:7px;padding:3px 5px;
+    background:var(--card);color:var(--texto);cursor:pointer}
+  .sel:focus{outline:none;border-color:var(--laranja)}
+  .pct{width:50px;font:600 11px var(--fonte);border:1px solid var(--borda-2);border-radius:7px;
+    padding:3px 5px;background:var(--card);color:var(--texto);text-align:right}
+  .det{grid-column:1/-1;display:none;font-size:12px;color:var(--texto-sec);line-height:1.5;
+    background:var(--suave);border-left:3px solid var(--laranja);border-radius:0 8px 8px 0;
+    padding:8px 13px;margin:1px 0 4px}
+  .det.show{display:block}
+  .det a{color:var(--laranja-escuro);text-decoration:none;font-weight:650}
+
+  /* ── gráfico ── */
+  .gcabe{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .tab{font:600 11.5px var(--fonte);border:1px solid var(--borda-2);background:var(--card);
+    color:var(--texto-sec);border-radius:99px;padding:4px 11px;cursor:pointer}
+  .tab:hover{border-color:var(--laranja)}
+  .tab.on{background:var(--laranja);border-color:var(--laranja);color:#3A2A1C}
+  svg.chart{width:100%;height:190px;display:block;overflow:visible}
+  .chart .eixo{stroke:var(--borda);stroke-width:1}
+  .chart .grade{stroke:var(--borda);stroke-width:1;stroke-dasharray:3 4;opacity:.7}
+  .chart text{font:10.5px var(--fonte);fill:var(--texto-sec)}
+  .chart .linha{fill:none;stroke:var(--laranja);stroke-width:2.5;stroke-linejoin:round}
+  .chart .area{fill:var(--laranja);opacity:.13}
+  .chart .pt{fill:var(--laranja)}
+  .chart .valor{font:700 11px var(--fonte);fill:var(--texto)}
+
+  /* ── listas simples ── */
+  .lin{display:flex;flex-direction:column;gap:5px}
+  .lrow{display:grid;grid-template-columns:minmax(0,1fr) 92px 46px;align-items:center;gap:10px;font-size:12.5px}
+  .lrow>span:first-child{overflow-wrap:anywhere;color:var(--texto-sec)}
+  .trk{height:7px;background:var(--borda);border-radius:99px;overflow:hidden}
+  .trk i{display:block;height:100%;background:var(--laranja);border-radius:99px}
+  .trk i.rm{background:var(--err)}
+  .lrow b{text-align:right;font-weight:700}
+  @media(max-width:420px){.lrow{grid-template-columns:minmax(0,1fr) 56px 42px;gap:7px}}
+
+  /* ── bloqueios ── */
+  .bqs{display:flex;flex-direction:column;gap:5px}
+  .bq{display:grid;grid-template-columns:minmax(0,1fr) 104px 88px;gap:10px;align-items:center;
+    padding:9px 12px;border:1px solid var(--borda);border-radius:8px;background:var(--suave);
+    border-left:3px solid var(--borda-2);font-size:12.5px}
+  .bq.alta{border-left-color:var(--err)}.bq.media{border-left-color:var(--laranja)}
+  .bq.caiu{border-left-color:var(--ok);background:var(--ok-bg)}
+  .bq.caiu .tt{text-decoration:line-through}
+  @media(max-width:820px){.bq{grid-template-columns:minmax(0,1fr) 88px}.bq .vr{display:none}}
+  .bq .tt{font-weight:650;overflow-wrap:anywhere}
+  .bq .dn{font-size:11px;color:var(--texto-sec)}
+  .bq .vr{font-size:10.5px;font-weight:650;text-align:right;white-space:nowrap;color:var(--texto-sec)}
+  .bq .vr.nunca{color:var(--err)}
+
+  /* ── testes ── */
+  .tst{display:grid;grid-template-columns:38px minmax(0,1fr) 84px 74px;gap:10px;align-items:center;
+    font-size:12.5px;padding:7px 11px;border:1px solid var(--borda);border-radius:8px;
+    background:var(--suave);cursor:pointer}
+  .tst:hover{border-color:var(--borda-2)}
+  .tst:focus-visible{outline:2px solid var(--laranja-escuro);outline-offset:2px}
+  .tst.decide{border-left:3px solid var(--laranja);background:var(--card)}
+  @media(max-width:700px){.tst{grid-template-columns:38px minmax(0,1fr) 84px}.tst .res{display:none}}
+  .tst .cod{font-weight:750;color:var(--grafite-2)}
+  .tst .tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+  .tst .res{font:700 11px var(--mono);text-align:right}
+  .pill{font:700 10px var(--fonte);text-transform:uppercase;letter-spacing:.5px;border-radius:99px;
+    padding:3px 8px;text-align:center;white-space:nowrap}
   .pill.rodado{background:var(--ok-bg);color:var(--ok)}
   .pill.piloto,.pill.parcial{background:var(--amb-bg);color:var(--amb)}
   .pill.pendente{background:var(--borda);color:var(--texto-sec)}
   .pill.cancelado{background:transparent;border:1px dashed var(--borda-2);color:var(--texto-sec)}
-  .gt .col-n{font:600 11px var(--mono);color:var(--texto-sec);text-align:right}
-  .lado{display:flex;flex-direction:column;gap:3px}
-  .lado .lb{font-size:10px;color:var(--texto-sec);display:flex;justify-content:space-between;gap:5px}
-  .lado .lb b{color:var(--texto);font:700 11px var(--mono)}
-  .lado .bar{height:5px;background:var(--borda);border-radius:99px;overflow:hidden}
-  .lado .bar i{display:block;height:100%;border-radius:99px;background:var(--laranja)}
-  .lado.a .bar i{background:var(--grafite-3)}
-  .lado.b2 .bar i{background:var(--grafite-3)}
-  /* métrica em que MENOS é melhor: barra cheia não pode parecer conquista */
-  .lado.ruim .bar i{background:var(--err)}
-  .lado.ruim .lb b{color:var(--err)}
-  .det{grid-column:1/-1;display:none;font-size:11.5px;color:var(--texto-sec);line-height:1.55;
-    border-top:1px solid var(--borda);margin-top:7px;padding-top:9px}
-  .det.show{display:block}
-  .det .kv{display:grid;grid-template-columns:104px minmax(0,1fr);gap:3px 10px}
-  .det .kv span{color:var(--texto-sec);font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding-top:2px}
-  .det .kv div{color:var(--texto)}
 
-  /* ── bloqueios ── */
-  .bqs{display:flex;flex-direction:column;gap:6px}
-  .bq{display:grid;grid-template-columns:minmax(0,1fr) 118px 96px;gap:10px;align-items:start;
-    padding:9px 12px;border:1px solid var(--borda);border-radius:8px;background:var(--suave);
-    border-left:3px solid var(--borda-2)}
-  .bq.alta{border-left-color:var(--err)}
-  .bq.media{border-left-color:var(--laranja)}
-  .bq.caiu{border-left-color:var(--ok);background:var(--ok-bg)}
-  .bq.caiu .tt{text-decoration:line-through}
-  @media(max-width:820px){.bq{grid-template-columns:minmax(0,1fr)}.bq .vr{text-align:left}}
-  .bq .tt{font-size:12.5px;font-weight:650;color:var(--texto)}
-  .bq .tr{font-size:11px;color:var(--texto-sec);margin-top:2px;line-height:1.45}
-  .bq .rs{font:10.5px var(--mono);color:var(--texto-sec);margin-top:4px;
-    overflow-wrap:anywhere}
-  .bq .tt,.bq .tr{overflow-wrap:anywhere}
-  .bq .dn{font-size:11px;color:var(--texto-sec)}
-  .bq .vr{font-size:10.5px;font-weight:650;text-align:right;white-space:nowrap}
-  .bq .vr.velho{color:var(--texto-sec)}
-  .bq .vr.nunca{color:var(--err)}
-  .bq .vr.fresco{color:var(--ok)}
+  /* ── modal de escolha de dados ── */
+  .mb{position:fixed;inset:0;background:rgba(43,39,36,.5);display:none;align-items:center;
+    justify-content:center;padding:22px;z-index:150}
+  .mb.show{display:flex}
+  .mo{background:var(--card);border-radius:16px;box-shadow:0 18px 50px rgba(43,39,36,.3);
+    max-width:600px;width:100%;max-height:82vh;overflow:auto;padding:22px 24px 20px}
+  .mo h2{margin:0 0 4px;font-size:16px}
+  .mo p{margin:0 0 16px;font-size:12.5px;color:var(--texto-sec)}
+  .mgrupo{font:700 10px var(--fonte);text-transform:uppercase;letter-spacing:1px;
+    color:var(--texto-sec);margin:14px 0 7px}
+  .opt{display:flex;align-items:center;gap:11px;padding:9px 11px;border:1px solid var(--borda);
+    border-radius:9px;cursor:pointer;margin-bottom:5px;background:var(--suave)}
+  .opt:hover{border-color:var(--laranja)}
+  .opt.on{background:var(--laranja-tint);border-color:var(--laranja)}
+  .opt input{width:16px;height:16px;accent-color:var(--laranja-escuro);cursor:pointer;flex:none}
+  .opt .txt{flex:1;min-width:0}
+  .opt .tl2{font-size:12.5px;font-weight:650}
+  .opt .vl{font:700 12.5px var(--mono);color:var(--laranja-escuro);white-space:nowrap}
+  .mo .fim{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}
+  .bt{font:700 13px var(--fonte);border:none;border-radius:9px;padding:9px 17px;cursor:pointer}
+  .bt.pri{background:var(--laranja);color:#3A2A1C}.bt.pri:hover{background:var(--laranja-forte);color:#fff}
+  .bt.sec{background:var(--suave);color:var(--texto);border:1px solid var(--borda-2)}
 
-  /* ── uso por pessoa ── */
-  .pes{display:flex;flex-direction:column;gap:6px}
-  .pl{display:grid;grid-template-columns:minmax(0,1fr) 62px 150px;gap:10px;align-items:center;font-size:12px;
-    padding:7px 11px;border:1px solid var(--borda);border-radius:8px;background:var(--suave)}
-  .pl .nm{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .pl .qt{font:700 13px var(--fonte);text-align:right}
-  .pl .cu{font-size:10.5px;color:var(--texto-sec);text-align:right}
-  @media(max-width:560px){.pl{grid-template-columns:minmax(0,1fr) 52px}
-    .pl .cu{grid-column:1/-1;text-align:left}}
-  .semtoken{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
-  .chip{font-size:11.5px;font-weight:600;background:var(--suave);border:1px solid var(--borda-2);
-    border-radius:99px;padding:3px 10px;color:var(--texto-sec)}
-  .chip.sem{opacity:.62;font-weight:500}
-  .chip.rec{background:var(--laranja-tint);border-color:var(--laranja);color:var(--laranja-escuro)}
-
-  .vazio{font-size:11.5px;color:var(--texto-sec);line-height:1.6}
+  .vazio{font-size:12px;color:var(--texto-sec);line-height:1.55}
   .rod{font-size:11px;color:var(--texto-sec);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .rod code{background:var(--card);border:1px solid var(--borda);border-radius:5px;padding:1px 5px;
+    font:10.5px var(--mono)}
 
-  /* gate de login */
   #gate{display:none;flex:1;align-items:center;justify-content:center;padding:30px}
   #gate.show{display:flex}#app{display:none}#app.show{display:block}
-  .gcard{background:var(--card);border:1px solid var(--borda);border-radius:16px;padding:30px 32px;max-width:420px;
-    width:100%;box-shadow:var(--sombra);text-align:center}
+  .gcard{background:var(--card);border:1px solid var(--borda);border-radius:16px;padding:30px 32px;
+    max-width:420px;width:100%;box-shadow:var(--sombra);text-align:center}
   .gcard h1{font-size:19px;margin:0 0 6px}
   .gcard p{font-size:13px;color:var(--texto-sec);margin:0 0 18px}
   .gcard input{width:100%;font:14px var(--fonte);padding:11px 13px;border:1px solid var(--borda-2);
     border-radius:10px;margin-bottom:11px;outline:none}
   .gcard input:focus{border-color:var(--laranja)}
-  .gcard button{width:100%;font:700 14px var(--fonte);background:var(--laranja);color:#3A2A1C;border:none;
-    border-radius:10px;padding:11px;cursor:pointer}
+  .gcard button{width:100%;font:700 14px var(--fonte);background:var(--laranja);color:#3A2A1C;
+    border:none;border-radius:10px;padding:11px;cursor:pointer}
   .gcard button:hover{background:var(--laranja-forte);color:#fff}
   #g-msg{font-size:12.5px;margin-top:12px;min-height:18px}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--grafite);
-    color:#fff;font-size:13px;padding:11px 18px;border-radius:10px;z-index:200;
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(14px);
+    background:var(--grafite);color:#fff;font-size:13px;padding:11px 18px;border-radius:10px;z-index:200;
     opacity:0;visibility:hidden;transition:opacity .2s,transform .2s,visibility .2s}
   .toast.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
 </style>
@@ -175,7 +216,7 @@
 <div id="gate">
   <div class="gcard">
     <h1>Cérebro vetorial</h1>
-    <p>Gate do corte e saúde do corpus. Entre com o seu e-mail da Dot — chega um link de acesso.</p>
+    <p>Entre com o seu e-mail da Dot — chega um link de acesso.</p>
     <input id="g-email" type="email" placeholder="nome@dot.com.br" autocomplete="email">
     <button onclick="enviarLink()">Receber link</button>
     <div id="g-msg"></div>
@@ -195,43 +236,52 @@
     <div class="tiles" id="tiles"></div>
 
     <div class="pn">
-      <h3>O gate do corte
-        <span id="gate-sub">clique na linha para ver o que o teste decide · o número vem sempre do artefato, nunca da nota</span></h3>
-      <div class="gts" id="gts"></div>
-      <div class="nota" id="gate-nota"></div>
+      <h3>Plano de implementação <span id="tl-sub">—</span></h3>
+      <div class="faixa-rot">Fases do tombamento</div>
+      <div class="meses" id="meses"></div>
+      <div class="tl fase" id="tl-fases"></div>
+      <div class="faixa-rot" style="margin-top:16px">Projetos</div>
+      <div class="tl" id="tl-projetos"></div>
+    </div>
+
+    <div class="pn">
+      <h3>Como está evoluindo <span>último mês</span></h3>
+      <div class="gcabe" id="g-tabs"></div>
+      <svg class="chart" id="chart" preserveAspectRatio="none"></svg>
     </div>
 
     <div class="grid2">
       <div class="pn">
-        <h3>Deriva vault × índice <span id="deriva-sub">—</span></h3>
-        <div class="mini" id="deriva"></div>
-        <div class="nota" id="deriva-nota"></div>
+        <h3>Fila de trabalho <span id="fila-sub">no vault</span></h3>
+        <div class="lin" id="fila"></div>
       </div>
       <div class="pn">
-        <h3>Higiene do vault <span>a fila que é pré-requisito do gate T9</span></h3>
-        <div class="mini" id="higiene"></div>
-        <div class="nota" id="higiene-nota"></div>
+        <h3>Bloqueios <span id="bq-sub">—</span></h3>
+        <div class="bqs" id="bqs"></div>
       </div>
     </div>
 
     <div class="pn">
-      <h3>Uso registrado pela skill <span id="uso-sub">—</span></h3>
-      <div class="pes" id="uso"></div>
-      <div class="semtoken" id="uso-chips"></div>
-      <div class="nota" id="uso-nota"></div>
-    </div>
-
-    <div class="pn">
-      <h3>Bloqueios <span>bloqueio sem data de checagem apodrece — e queima o crédito da cobrança</span></h3>
-      <div class="bqs" id="bqs"></div>
-      <div class="nota" id="bqs-nota"></div>
+      <h3>Testes <span id="tst-sub">clique para ver o que o teste decide</span></h3>
+      <div class="bqs" id="tsts"></div>
     </div>
 
     <div class="rod">
-      <span>Gateway: <code>cerebro.raposystem.com.br/mcp</code></span>
+      <span id="rod-gw">—</span>
       <span>Medição: <code>py vetorial_cli.py auto</code></span>
-      <span>Modelo de teste: <code>Ops/Sistemas/cerebro_testes_dia_a_dia.md</code></span>
       <span id="rod-upd"></span>
+    </div>
+  </div>
+</div>
+
+<div class="mb" id="modal">
+  <div class="mo">
+    <h2>Escolher dados</h2>
+    <p>Tudo aqui é medido todo dia, mesmo desligado. Marque o que quer ver no topo.</p>
+    <div id="opts"></div>
+    <div class="fim">
+      <button class="bt sec" onclick="fecharModal()">Cancelar</button>
+      <button class="bt pri" onclick="salvarEscolha()">Aplicar</button>
     </div>
   </div>
 </div>
@@ -243,27 +293,69 @@
 const SB_URL='https://suhmrwjqlzvfjbagyvif.supabase.co', SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1aG1yd2pxbHp2ZmpiYWd5dmlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNjczOTIsImV4cCI6MjA5ODk0MzM5Mn0.uDjetAxk1Z7b__48860J1llHPH5j1hbhVTgr7K2Tj4A';
 const sb = window.supabase.createClient(SB_URL, SB_ANON,
   {auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}});
+const VAULT='Cerebro Dot';
 
-/* Denominador de todo tile de uso: 12 tokens emitidos em 24/08/2026, 9 grupos.
-   ⚠ tem que bater com TOKENS de catalogo_vetorial.py — aqui é só rótulo. */
-const TOKENS=['bruna','felipe','jota','manuella','mauricio','ramiro','thomas',
-              'gustavo','talita','b2','vini','sevestrin'];
-const RECORTE=['vini','sevestrin'];   // as 2 únicas identidades que exercitam a RLS
-const JANELA=30;                      // dias da janela de uso
-const CHECAGEM_VELHA=7;               // dias — acima disso o bloqueio fica cinza, não vermelho
+/* ── O CATÁLOGO DE METRICAS ──────────────────────────────────────
+   Tudo é medido todo dia e guardado em vet_corpus_dia; o que APARECE é escolha
+   do Thomas, guardada no navegador. Os do grupo "Adoção" são as mesmas contas
+   da área Cérebro — medidas aqui para nada se perder quando aquela área morrer.
+   `bom`: 'baixo' = quanto menor melhor · 'alto' = quanto maior melhor       */
+const METRICAS=[
+  {k:'fora_indice', g:'Cérebro vetorial', rot:'Notas fora do índice', bom:'baixo',
+   v:d=>d.divergentes, pe:d=>`de ${num(d.notas_vault)} no vault · carga ${diaBR(d.indice_data)}`},
+  {k:'sem_acesso', g:'Cérebro vetorial', rot:'Sem classificação de acesso', bom:'baixo',
+   v:d=>d.sem_tag_acesso, pe:d=>`${pct((d.sem_tag_acesso||0)/(d.notas_vault||1))} do vault · sem isso a permissão não se aplica`},
+  {k:'testes', g:'Cérebro vetorial', rot:'Testes prontos', bom:'alto',
+   v:()=>GATE.filter(t=>t.estado==='rodado').length, den:()=>GATE.length||10,
+   pe:()=>'concluídos até o fim, de 10'},
+  {k:'notas_grandes', g:'Cérebro vetorial', rot:'Notas grandes demais', bom:'baixo',
+   v:d=>d.acima_40kb, pe:()=>'acima de 40 KB — entregam só um pedaço de si'},
+  {k:'cabe_resposta', g:'Cérebro vetorial', rot:'Notas que cabem na resposta', bom:'alto',
+   v:d=>d.chunk_real_cabem_2, den:d=>d.chunk_real_conhecido,
+   pe:d=>`das ${num(d.chunk_real_conhecido)} que dá para verificar`},
+  {k:'limpar', g:'Cérebro vetorial', rot:'Arquivos para limpar', bom:'baixo',
+   v:d=>(d.vazias||0)+(d.duplicatas_sync||0)+(d.bak||0)+(d.py_no_vault||0),
+   pe:d=>`${d.vazias} vazias · ${d.duplicatas_sync} duplicadas · ${d.bak} backup · ${d.py_no_vault} código`},
+  {k:'gateway', g:'Cérebro vetorial', rot:'Resposta do gateway', bom:'baixo', un:' ms',
+   v:d=>d.health_ok?d.health_ms:null, pe:d=>d.health_ok?'no ar':'não respondeu'},
+  {k:'duvidas', g:'Cérebro vetorial', rot:'Dúvidas registradas', bom:'alto',
+   v:()=>CONS.length, pe:()=>`${new Set(CONS.map(c=>c.pessoa)).size} pessoa(s) de 12 com acesso · 30 dias`},
 
-let COR=null, GATE=[], BLOQ=[], CONS=[], USER=null;
-let ERRO_BLOQ=null, ERRO_CONS=null, CANAL=null;
+  {k:'ra', g:'Adoção (o que a área Cérebro mede)', rot:'Pessoas usando', bom:'alto', tipo:'pct',
+   v:d=>d.ra, pe:d=>`${d.pessoas_ativas} de ${d.escopo} pessoas · 30 dias`},
+  {k:'desconc', g:'Adoção (o que a área Cérebro mede)', rot:'Desconcentração', bom:'alto', tipo:'pct',
+   v:d=>d.desconcentracao, pe:d=>`escrito fora de ${(d.top2||[]).join(' e ')||'—'}`},
+  {k:'cobertura', g:'Adoção (o que a área Cérebro mede)', rot:'Áreas cobertas', bom:'alto',
+   v:d=>d.areas_ativas, den:d=>d.areas_total, pe:()=>'áreas com produção no mês'},
+  {k:'notas_criadas', g:'Adoção (o que a área Cérebro mede)', rot:'Notas criadas', bom:'alto',
+   v:d=>d.notas_criadas, pe:()=>'nos últimos 30 dias'},
+  {k:'sem_autor', g:'Adoção (o que a área Cérebro mede)', rot:'Notas sem autor', bom:'baixo',
+   v:d=>d.sem_autor, pe:()=>'sem quem criou no cabeçalho'},
+  {k:'sem_credito', g:'Adoção (o que a área Cérebro mede)', rot:'Edições sem crédito', bom:'baixo',
+   v:d=>d.sem_atualizado_por, pe:()=>'editadas sem registrar quem editou'},
+];
+const PADRAO=['fora_indice','sem_acesso','testes'];
+const CHAVE='vet_tiles';                 /* preferência local, por navegador */
+
+const SL={todo:'a fazer',doing:'andando',done:'feito',blocked:'travado',cancel:'cancelado'};
+let COR=null, SERIE=[], GATE=[], BLOQ=[], CONS=[], PLANO=[], CANAL=null, USER=null;
+let ESCOLHA=carregarEscolha(), G_ATIVO='fora_indice';
+
+function carregarEscolha(){
+  try{const s=localStorage.getItem(CHAVE); if(s) return JSON.parse(s);}catch(e){}
+  return PADRAO.slice();
+}
+function gravarEscolha(){ try{localStorage.setItem(CHAVE,JSON.stringify(ESCOLHA));}catch(e){} }
 
 const $=s=>document.getElementById(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const pct=v=>(v==null||isNaN(v))?'—':Math.round(v*100)+'%';
 const num=v=>(v==null)?'—':Number(v).toLocaleString('pt-BR');
+const pct=v=>(v==null||isNaN(v))?'—':Math.round(v*100)+'%';
 const dias=(a,b)=>Math.round((new Date(b)-new Date(a))/86400000);
-function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 function fmtBR(iso){if(!iso)return '—';const p=String(iso).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:iso;}
 const diaBR=d=>fmtBR(d).slice(0,5);
-const kb=b=>(b==null)?'—':(b/1024).toFixed(1).replace('.',',')+' KB';
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+const dado=k=>METRICAS.find(x=>x.k===k);
 
 /* ── auth ── */
 async function enviarLink(){
@@ -278,12 +370,13 @@ async function sair(){await sb.auth.signOut();location.reload();}
 
 /* ── dados ── */
 async function carregar(){
-  const desde=new Date(Date.now()-(JANELA-1)*86400000).toISOString().slice(0,10);
-  const [c,g,b,u]=await Promise.all([
-    sb.from('vet_corpus_dia').select('*').order('data',{ascending:false}).limit(1),
+  const desde=new Date(Date.now()-29*86400000).toISOString().slice(0,10);
+  const [c,g,b,u,p]=await Promise.all([
+    sb.from('vet_corpus_dia').select('*').order('data',{ascending:true}).limit(120),
     sb.from('vet_gate').select('*').order('ordem'),
     sb.from('vet_bloqueios').select('*').order('ordem'),
-    sb.from('vet_consultas').select('*').gte('data',desde)]);
+    sb.from('vet_consultas').select('*').gte('data',desde),
+    sb.from('vet_plano').select('*').order('ordem')]);
   if(c.error||g.error){
     const e=(c.error||g.error);
     toast('Erro ao carregar: '+e.message);
@@ -291,309 +384,268 @@ async function carregar(){
       toast('Tabelas não criadas — rode sql/schema_vetorial.sql no Supabase.');
     return;
   }
-  COR=(c.data&&c.data[0])||null; GATE=g.data||[];
-  /* erro de leitura NAO pode virar "zero medido": o bloco diria "0 dúvida(s)"
-     quando na verdade não deu para ler. Guarda o erro e a tela avisa. */
-  ERRO_BLOQ=b.error?b.error.message:null; ERRO_CONS=u.error?u.error.message:null;
-  BLOQ=b.error?[]:(b.data||[]); CONS=u.error?[]:(u.data||[]);
-  if(ERRO_BLOQ||ERRO_CONS) toast('Não consegui ler '+(ERRO_BLOQ?'bloqueios':'')
-    +(ERRO_BLOQ&&ERRO_CONS?' e ':'')+(ERRO_CONS?'dúvidas':''));
+  SERIE=c.data||[]; COR=SERIE.length?SERIE[SERIE.length-1]:null;
+  GATE=g.data||[];
+  if(b.error||u.error||p.error) toast('Não consegui ler parte dos dados.');
+  BLOQ=b.error?[]:(b.data||[]); CONS=u.error?[]:(u.data||[]); PLANO=p.error?[]:(p.data||[]);
   render();
 }
 function realtime(){
-  /* onAuthStateChange dispara INITIAL_SESSION e TOKEN_REFRESHED (de hora em
-     hora). Sem a trava, cada evento abria um canal novo e multiplicava os
-     carregar() — num painel deixado aberto o dia todo isso vira dezenas. */
   if(CANAL) return;
-  CANAL=sb.channel('rt-vetorial')
-    .on('postgres_changes',{event:'*',schema:'public',table:'vet_corpus_dia'},carregar)
-    .on('postgres_changes',{event:'*',schema:'public',table:'vet_gate'},carregar)
-    .on('postgres_changes',{event:'*',schema:'public',table:'vet_bloqueios'},carregar)
-    .on('postgres_changes',{event:'*',schema:'public',table:'vet_consultas'},carregar)
-    .subscribe();
+  CANAL=sb.channel('rt-vetorial');
+  ['vet_corpus_dia','vet_gate','vet_bloqueios','vet_consultas','vet_plano'].forEach(t=>
+    CANAL.on('postgres_changes',{event:'*',schema:'public',table:t},carregar));
+  CANAL.subscribe();
 }
 function pararRealtime(){ if(CANAL){sb.removeChannel(CANAL);CANAL=null;} }
 
 /* ── render ── */
 function render(){
-  const gs=GATE.filter(t=>t.is_gate), fech=gs.filter(t=>t.estado==='rodado').length;
-  $('hd-est').textContent=`gate ${fech}/${gs.length||4}`
-    +(COR?` · deriva ${COR.divergentes??'—'}`:'');
-  tiles(); gate(); deriva(); higiene(); uso(); bloqueios();
-  const ts=[...GATE.map(t=>t.atualizado_em),...BLOQ.map(b=>b.atualizado_em),
+  const fech=GATE.filter(t=>t.estado==='rodado').length;
+  const feitas=PLANO.filter(p=>p.faixa==='fase'&&p.status==='done').length;
+  const nf=PLANO.filter(p=>p.faixa==='fase').length;
+  $('hd-est').textContent = nf?`fase ${feitas}/${nf} · testes ${fech}/${GATE.length||10}`:'—';
+  tiles(); timeline(); grafico(); fila(); bloqueios(); testes();
+  $('rod-gw').innerHTML = COR
+    ? `Gateway ${COR.health_ok?`<b>no ar</b> · ${num(COR.health_ms)} ms`:'<b>fora</b>'}`
+      +(COR.endereco_amostra?` · ${COR.endereco_ok}/${COR.endereco_amostra} da amostra estão no índice`:'')
+    : 'sem medição';
+  const ts=[...GATE.map(t=>t.atualizado_em),...PLANO.map(p=>p.atualizado_em),
             COR&&COR.atualizado_em].filter(Boolean).sort().pop();
   $('rod-upd').textContent=ts?('atualizado '+new Date(ts).toLocaleString('pt-BR')):'';
 }
 
-/* ⚠ 5 parâmetros — o tile() do cerebro.html tem 6 (extra antes de bar).
-   Copiar chamada de lá para cá põe string no lugar de `bar`. */
-function tile(l,n,f,bar=null,cls=''){
-  return `<div class="st ${cls}"><div class="l">${l}</div><div class="n">${n}</div>
-    <div class="f">${f}</div>
-    ${bar!=null?`<div class="prog"><i style="width:${Math.max(0,Math.min(100,bar*100))}%"></i></div>`:''}</div>`;
+/* ── tiles escolhidos ── */
+function valorDe(D){
+  if(!COR&&!(D.k==='testes'||D.k==='duvidas')) return null;
+  try{ return D.v(COR||{}); }catch(e){ return null; }
 }
-
-function custoMediano(){
-  if(!CONS.length) return null;
-  const c=CONS.map(x=>x.n_consultas||0), l=CONS.map(x=>x.n_leituras||0),
-        b=CONS.map(x=>x.bytes_contexto||0);
-  const med=a=>{const s=[...a].sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:0;};
-  return {cons:med(c), ler:med(l), bytes:med(b), pior:Math.max(...b)};
+function textoTile(D){
+  const v=valorDe(D);
+  const den=D.den?D.den(COR||{}):null;
+  if(v==null) return {n:'—', cls:'nm'};
+  let n;
+  if(D.tipo==='pct') n=pct(v);
+  else if(den!=null) n=`${num(v)} <small>/${num(den)}</small>`;
+  else n=num(v)+(D.un||'');
+  /* cor: só onde a direção é inequívoca e o número pede ação */
+  let cls='';
+  if(D.bom==='baixo' && v>0) cls='ruim';
+  if(D.bom==='baixo' && v===0) cls='bom';
+  if(D.bom==='alto' && den!=null) cls = (v>=den)?'bom':(v===0?'ruim':'');
+  return {n, cls};
 }
-
 function tiles(){
-  if(!COR){$('tiles').innerHTML=tile('Corpus','—','sem medição ainda — rode <code>py vetorial_cli.py medir</code>',null,'nm');return;}
-  const gs=GATE.filter(t=>t.is_gate), fech=gs.filter(t=>t.estado==='rodado').length;
-  const gsn=gs.length||4;
-  const pessoas=new Set(CONS.map(x=>x.pessoa)).size;
-  const cst=custoMediano();
-  const idade=dias(COR.indice_data,COR.data);
-  const semAc=COR.sem_tag_acesso??0, tot=COR.notas_vault||1;
-  $('tiles').innerHTML=[
-    /* 1. o número que ninguém mais mede: o vault andou, o índice não soube */
-    tile('Deriva vault × índice', num(COR.divergentes),
-      `notas divergentes · carga ${diaBR(COR.indice_data)} (${idade} d) · `
-      +`vault ${num(COR.notas_vault)} × índice ~${num(COR.indice_notas_declarado)} <b>declarado</b>`,
-      null, (COR.divergentes||0)>0?'ruim':'bom'),
-    /* 2. o gate — 'rodado' de propósito: piloto e parcial não fecham critério */
-    tile('Gate fechado', `${fech} <small>/${gsn}</small>`,
-      gs.map(t=>esc(t.codigo)).join(' · ')+' · só <b>rodado</b> conta',
-      fech/gsn, fech<gsn?'ruim':'bom'),
-    /* 3. sem tag acesso/ = sem grupo = a RLS não tem o que aplicar (risco #10) */
-    tile('Sem classificação', num(semAc),
-      `${pct(semAc/tot)} de ${num(tot)} sem tag <code>acesso/</code> · sem tag não há grupo`,
-      null, semAc>0?'ruim':'bom'),
-    /* 4. NUNCA sem denominador — mede quem tem a skill, não quem usa o Cérebro */
-    tile(`Dúvidas · ${JANELA}d`, num(CONS.length),
-      `${pessoas} pessoa(s) de ${TOKENS.length} com token · skill medida em 1 máquina`,
-      pessoas/TOKENS.length, (pessoas<=1)?'ruim':''),
-    /* 5. custo, não volume: volume sobe quando o sistema falha */
-    cst?tile('Custo por dúvida', cst.cons.toFixed(1).replace('.',','),
-      `consulta/dúvida (mediana) · ${cst.ler.toFixed(1).replace('.',',')} leitura · `
-      +`${kb(cst.bytes)} · pior caso ${kb(cst.pior)}`)
-      :tile('Custo por dúvida','—','sem dúvida registrada na janela',null,'nm'),
-    /* 6. chunk REAL. Estimar erra 28,6% na mediana — não estimamos. */
-    tile('Chunk real', `${num(COR.chunk_real_cabem_2)} <small>/${num(COR.chunk_real_conhecido)}</small>`,
-      `no teto de 2 por nota · conhecido em ${num(COR.chunk_real_conhecido)} de ${num(tot)} notas · `
-      +'o resto <b>não é estimado</b>',
-      (COR.chunk_real_conhecido?COR.chunk_real_cabem_2/COR.chunk_real_conhecido:null)),
-    /* 7. gateway: /health não passa pelo /mcp, logo não gasta orçamento */
-    tile('Gateway', COR.health_ok?`${num(COR.health_ms)}<small> ms</small>`:'fora',
-      COR.health_ok?`<code>/health</code> ok`
-        +(COR.endereco_amostra
-          ? ` · <b>${COR.endereco_ok}/${COR.endereco_amostra}</b> da amostra estão no índice`
-            +(/interrompida|não definida/.test(COR.endereco_convencao||'')
-              ? ` <b>(${esc(COR.endereco_convencao)})</b>` : '')
-          : ' · amostra de endereço não rodada nesta medição')
-        :'não respondeu à última medição',
-      null, COR.health_ok?'bom':'ruim'),
-  ].join('');
+  const cards=ESCOLHA.map(k=>{
+    const D=dado(k); if(!D) return '';
+    const {n,cls}=textoTile(D);
+    let pe=''; try{ pe=D.pe?D.pe(COR||{}):''; }catch(e){}
+    return `<div class="st ${cls}">
+      <button class="x" title="tirar do topo" onclick="tirar('${esc(k)}')">✕</button>
+      <div class="l">${esc(D.rot)}</div><div class="n">${n}</div>
+      <div class="f">${pe}</div>${sparkline(k)}</div>`;
+  }).join('');
+  $('tiles').innerHTML=cards
+    +`<div class="st add" onclick="abrirModal()">＋ escolher dados</div>`;
 }
-
-/* Cada teste mede uma coisa diferente, e em alguns MENOS é melhor (falsa
-   abstenção no T2, duplicata velha em top-8 no T9). Rótulo e direção vêm com o
-   número; a barra invertida ganha `ruim` para não parecer conquista. */
-function lado(cls,rot,valor,label,bomAlto=true){
-  const seta=bomAlto?'':' ↓';
-  if(valor==null) return `<div class="lado ${cls}"><div class="lb"><span>${esc(rot)}</span><b>—</b></div>
-    <div class="bar"></div></div>`;
-  return `<div class="lado ${cls} ${bomAlto?'':'ruim'}">
-    <div class="lb"><span title="${bomAlto?'':'quanto menos, melhor'}">${esc(rot)}${seta}</span>
-      <b>${esc(label||pct(valor))}</b></div>
-    <div class="bar"><i style="width:${Math.max(2,valor*100)}%"></i></div></div>`;
+/* mini-série no tile: 14 últimos dias, só para dado que tem histórico */
+function sparkline(k){
+  const D=dado(k); if(!D||D.k==='testes'||D.k==='duvidas') return '';
+  const vs=SERIE.slice(-14).map(d=>{try{return D.v(d);}catch(e){return null;}})
+                .filter(v=>v!=null&&!isNaN(v));
+  if(vs.length<3) return '';
+  const mx=Math.max(...vs)||1;
+  return `<div class="spark">`+vs.map((v,i)=>
+    `<i class="${i===vs.length-1?'on':''}" style="height:${Math.max(6,(v/mx)*100)}%"></i>`).join('')+`</div>`;
 }
+function tirar(k){ ESCOLHA=ESCOLHA.filter(x=>x!==k); gravarEscolha(); tiles(); }
 
-function gate(){
-  if(!GATE.length){
-    $('gts').innerHTML='<div class="vazio">sem importação ainda — rode <code>py vetorial_cli.py gate</code>, '
-      +'que recalcula T1..T10 a partir de <code>cerebro_migracao\\saida\\*.json</code>.</div>';
-    $('gate-nota').innerHTML='';return;
+/* ── modal ── */
+function abrirModal(){
+  const grupos=[...new Set(METRICAS.map(d=>d.g))];
+  $('opts').innerHTML=grupos.map(g=>`<div class="mgrupo">${esc(g)}</div>`
+    +METRICAS.filter(d=>d.g===g).map(D=>{
+      const {n}=textoTile(D);
+      const on=ESCOLHA.includes(D.k);
+      return `<label class="opt ${on?'on':''}">
+        <input type="checkbox" value="${esc(D.k)}" ${on?'checked':''}
+               onchange="this.closest('.opt').classList.toggle('on',this.checked)">
+        <span class="txt"><span class="tl2">${esc(D.rot)}</span></span>
+        <span class="vl">${n}</span></label>`;
+    }).join('')).join('');
+  $('modal').classList.add('show');
+}
+function fecharModal(){ $('modal').classList.remove('show'); }
+function salvarEscolha(){
+  ESCOLHA=[...$('opts').querySelectorAll('input:checked')].map(i=>i.value);
+  gravarEscolha(); fecharModal(); tiles();
+}
+$('modal').addEventListener('click',e=>{ if(e.target===$('modal')) fecharModal(); });
+
+/* ── timeline em duas faixas ── */
+function timeline(){
+  if(!PLANO.length){
+    $('tl-fases').innerHTML='<div class="vazio">sem plano publicado — rode <code>py vetorial_cli.py plano</code>.</div>';
+    $('tl-projetos').innerHTML=''; $('meses').innerHTML=''; return;
   }
-  $('gts').innerHTML=GATE.map(t=>`
-    <div class="gt ${t.is_gate?'isgate':''}" data-cod="${esc(t.codigo)}"
-         role="button" tabindex="0" aria-expanded="false" aria-controls="det-${esc(t.codigo)}">
-      <div class="cod">${esc(t.codigo)}${t.is_gate?'<em>GATE</em>':''}</div>
-      <div class="tt" title="${esc(t.titulo)}">${esc(t.titulo)}</div>
-      <div><span class="pill ${esc(t.estado)}">${esc(t.estado)}</span></div>
-      <div class="col-n">n=${t.n||0}</div>
-      <div class="col-b">${lado('b',t.b_rotulo||'cérebro',t.b_valor,t.b_label,t.b_bom_alto!==false)}</div>
-      <div class="col-a">${t.a_valor!=null
-          ? lado('a','grep no vault',t.a_valor,t.a_label,true)
-          : lado('b2',t.b2_rotulo||'—',t.b2_valor,t.b2_label,t.b2_bom_alto!==false)}</div>
-      <div class="det" id="det-${esc(t.codigo)}">
-        <div class="kv">
-          <span>mede</span><div>${esc(t.dimensao)}</div>
-          <span>decide</span><div>${esc(t.decide)}</div>
-          ${t.obs?`<span>o que apareceu</span><div>${esc(t.obs)}</div>`:''}
-          <span>evidência</span><div>${t.arquivo?`<code>${esc(t.arquivo)}</code>`
-            :'<i>nenhum artefato — o teste não rodou ou não persiste resultado</i>'}
-            ${t.data_medicao?` · medido em ${fmtBR(t.data_medicao)}`:''}</div>
-          <span>reproduzir</span><div><code>${esc(t.comando)}</code></div>
-        </div>
+  const comData=PLANO.filter(p=>p.inicio&&p.fim);
+  if(!comData.length){ $('meses').innerHTML=''; return; }
+  const ini0=comData.map(p=>p.inicio).sort()[0], fim0=comData.map(p=>p.fim).sort().pop();
+  const INI=ini0.slice(0,8)+'01';
+  const fd=new Date(fim0+'T00:00:00');
+  const FIM=new Date(fd.getFullYear(),fd.getMonth()+1,0).toISOString().slice(0,10);
+  const total=Math.max(1,dias(INI,FIM)), hoje=new Date().toISOString().slice(0,10);
+  const hj=Math.max(0,Math.min(100,(dias(INI,hoje)/total)*100));
+  const M=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+  const cols=[]; let cur=new Date(INI+'T00:00:00');
+  while(cur.toISOString().slice(0,10)<=FIM){ cols.push(M[cur.getMonth()]); cur.setMonth(cur.getMonth()+1); }
+  $('meses').style.gridTemplateColumns=`34px repeat(${cols.length},1fr) 178px`;
+  $('meses').innerHTML='<span></span>'+cols.map(c=>`<span>${c}</span>`).join('')+'<span></span>';
+  $('tl-sub').textContent=`${fmtBR(INI)} → ${fmtBR(FIM)} · a linha vermelha é hoje`;
+
+  const linha=p=>{
+    const a=Math.max(0,(dias(INI,p.inicio||INI)/total)*100);
+    const w=Math.max(2.5,(dias(p.inicio||INI,p.fim||FIM)/total)*100);
+    const atraso=p.fim&&p.fim<hoje&&p.status!=='done'&&p.status!=='cancel';
+    return `<div class="it">
+      <div class="cod">${esc(p.codigo)}</div>
+      <div class="pista" data-cod="${esc(p.codigo)}">
+        <div class="hoje" style="left:${hj}%"></div>
+        <div class="barra ${esc(p.status)} ${w<17?'curta':''}" style="left:${a}%;width:${Math.min(w,100-a)}%">
+          ${p.percentual>0&&p.percentual<100?`<div class="fill" style="width:${100-p.percentual}%;left:auto;right:0;border-radius:0 5px 5px 0"></div>`:''}
+          <span class="lbl">${atraso?'⚠ ':''}${esc(p.titulo)}</span></div>
       </div>
-    </div>`).join('');
-  const gs=GATE.filter(t=>t.is_gate);
-  const falta=gs.filter(t=>t.estado!=='rodado').map(t=>t.codigo);
-  $('gate-nota').innerHTML=`<b>Por que o gate é isto.</b> A v2 do modelo de teste trocou o critério de
-    saída: o T2 já falhou na sondagem (abstenção zero), então o gate passou a ser
-    ${gs.map(t=>esc(t.codigo)).join(' + ')} — precisão, abstenção implantada, completude e integridade
-    do índice. <b>Só <code>rodado</code> fecha critério:</b> <code>piloto</code> é rodada em que quem
-    formulou também julgou, e <code>parcial</code> é proxy.
-    ${falta.length?`Falta fechar: <b>${falta.map(esc).join(', ')}</b>.`:''}
-    O número de cada linha é recalculado do artefato, nunca copiado da nota — foi assim que apareceu a
-    divergência com a rodada escrita em 24/08 (nota: T1 80,0%; contagem: 73,3%).`;
-}
-/* Delegação: o código do teste vai em data-*, nunca dentro de um onclick —
-   esc() protege atributo de DADO, não corpo de handler JS. E a linha do gate é
-   o único caminho para ver evidência/comando de cada teste, então precisa
-   abrir por teclado também. */
-function alternarDet(el){
-  const cod=el.getAttribute('data-cod'); if(!cod) return;
-  const d=$('det-'+cod); if(!d) return;
-  const aberto=d.classList.toggle('show');
-  el.setAttribute('aria-expanded',aberto?'true':'false');
-}
-$('gts').addEventListener('click',e=>{
-  const g=e.target.closest('.gt'); if(g) alternarDet(g);
-});
-$('gts').addEventListener('keydown',e=>{
-  if(e.key!=='Enter'&&e.key!==' ') return;
-  const g=e.target.closest('.gt'); if(!g) return;
-  e.preventDefault(); alternarDet(g);
-});
-
-function deriva(){
-  if(!COR){$('deriva').innerHTML='<div class="vazio">sem medição</div>';$('deriva-nota').innerHTML='';return;}
-  $('deriva-sub').textContent=`carga de ${fmtBR(COR.indice_data)} · medido em ${fmtBR(COR.data)}`;
-  const max=Math.max(COR.mtime_pos_carga||1,1);
-  const r=(rot,v,cls)=>`<div class="mrow"><span>${rot}</span>
-    <div class="trk"><i class="${cls||''}" style="width:${((v||0)/max)*100}%"></i></div><b>${num(v)}</b></div>`;
-  $('deriva').innerHTML=
-     r('notas tocadas desde a carga', COR.mtime_pos_carga,'al')
-    +r('↳ escritas pelo próprio MCP', COR.no_pacote_mcp)
-    +r('↳ <b>divergentes</b> — o índice não sabe', COR.divergentes,'rm')
-    +r('criadas (frontmatter)', COR.fm_criadas_pos_carga)
-    +r('atualizadas (frontmatter)', COR.fm_atualizadas_pos_carga);
-  $('deriva-nota').innerHTML=`<b>Não existe tile "notas no índice"</b>, e é de propósito: o gateway não
-    tem rota de listagem e esta máquina não fala com o RDS (<code>/metrics</code>,
-    <code>/stats</code>, <code>/admin</code>, <code>/reindex</code>, <code>/ingest</code> e
-    <code>/sync</code> devolvem 404). Publicar a contagem do vault com esse nome seria número errado
-    com cara de exato. O que se mede é a <b>deriva</b>: quanto o vault andou desde a carga.
-    O ~${num(COR.indice_notas_declarado)} do índice é <b>declarado</b> pela nota de infra, não medido.
-    E <code>escrever_nota</code> <b>soma</b> em vez de substituir — sem tool de delete, índice só cresce.
-    <br><b>A medição direta:</b> o tile do gateway amostra <code>ler_nota</code> em notas ao acaso.
-    Medido em 27/08, numa amostra de 12: as <b>9 criadas antes da carga resolveram</b> e as
-    <b>3 criadas depois falharam</b> — e nota <i>editada</i> depois da carga resolve, servindo a
-    versão velha. Ou seja, essa amostra mede <b>pertencimento ao índice</b>, não formato de
-    caminho — é a única leitura da deriva que não depende do <code>mtime</code> do OneDrive.`;
-}
-
-function higiene(){
-  if(!COR){$('higiene').innerHTML='<div class="vazio">sem medição</div>';$('higiene-nota').innerHTML='';return;}
-  /* chega como lista de pares [["Ops",166],…] — jsonb não preserva ordem de
-     chave, então objeto viria embaralhado. Tolera o formato antigo. */
-  const bruto=COR.sem_tag_por_pasta||[];
-  const pp=Array.isArray(bruto)?bruto:Object.entries(bruto);
-  pp.sort((a,b)=>b[1]-a[1]);
-  const maxp=Math.max(...pp.map(x=>x[1]),1);
-  const linhas=pp.map(([pasta,n])=>
-    `<div class="mrow"><span>sem <code>acesso/</code> em ${esc(pasta)}</span>
-      <div class="trk"><i class="rm" style="width:${(n/maxp)*100}%"></i></div><b>${num(n)}</b></div>`).join('');
-  const s=(rot,v)=>`<div class="mrow tot"><span>${rot}</span><div></div><b>${num(v)}</b></div>`;
-  $('higiene').innerHTML=linhas
-    +s('notas vazias', COR.vazias)
-    +s('duplicatas de sync', COR.duplicatas_sync)
-    +s('arquivos <code>.bak</code>', COR.bak)
-    +s('arquivos <code>.py</code> no vault', COR.py_no_vault)
-    +s('notas acima de 40 KB', COR.acima_40kb);
-  const dl=(COR.duplicatas_lista||[]);
-  $('higiene-nota').innerHTML=`<b>Isto é fila de trabalho, não decoração.</b> Nota sem tag
-    <code>acesso/</code> não tem grupo — a RLS não tem o que aplicar, e vazamento por agregação não é
-    pego por filtro nenhum. Duplicata de sync é servida <i>ao lado</i> da nota vigente e não pode ser
-    apagada pelo MCP.
-    ${dl.length?`<br>Duplicatas hoje: ${dl.map(x=>`<code>${esc(x)}</code>`).join(' · ')}`:''}
-    <br>A maior nota do vault tem ${kb(COR.bytes_maior)} (<code>${esc(COR.nota_maior||'')}</code>);
-    a mediana é ${kb(COR.bytes_mediana)} com ${num(COR.headings_mediana)} headings — e cada heading
-    corta um chunk.`;
-}
-
-function uso(){
-  const pessoas={};
-  CONS.forEach(c=>{
-    const p=(c.pessoa||'?').toLowerCase();
-    pessoas[p]=pessoas[p]||{n:0,cons:0,ler:0,by:0,abst:0,falsa:0,recusa:0};
-    const x=pessoas[p];
-    x.n++; x.cons+=c.n_consultas||0; x.ler+=c.n_leituras||0; x.by+=c.bytes_contexto||0;
-    if(c.abstencao)x.abst++; if(c.abstencao_falsa)x.falsa++;
-    x.recusa+=(c.recusa_hora||0)+(c.recusa_dia||0);
+      <div class="lado-dir">
+        <span class="dono" title="${esc(p.dono||'')}">${esc(p.dono||'')}</span>
+        <select class="sel" onchange="mudarStatus('${esc(p.codigo)}',this.value)">
+          ${Object.keys(SL).map(s=>`<option value="${s}" ${s===p.status?'selected':''}>${SL[s]}</option>`).join('')}
+        </select>
+        <input class="pct" type="number" min="0" max="100" step="10" value="${p.percentual}"
+               onchange="mudarPct('${esc(p.codigo)}',this.value)">
+      </div>
+      <div class="det" id="d-${esc(p.codigo)}">${esc(p.detalhe)}
+        ${p.nota_vault?` · <a href="obsidian://open?vault=${encodeURIComponent(VAULT)}&file=${encodeURIComponent(p.nota_vault)}">abrir a nota</a>`:''}
+      </div></div>`;
+  };
+  $('tl-fases').innerHTML=PLANO.filter(p=>p.faixa==='fase').map(linha).join('');
+  $('tl-projetos').innerHTML=PLANO.filter(p=>p.faixa==='projeto').map(linha).join('');
+  document.querySelectorAll('.pista').forEach(el=>el.onclick=()=>{
+    const d=$('d-'+el.getAttribute('data-cod')); if(d) d.classList.toggle('show');
   });
-  const nomes=Object.keys(pessoas).sort((a,b)=>pessoas[b].n-pessoas[a].n);
-  const abst=CONS.filter(c=>c.abstencao).length, falsa=CONS.filter(c=>c.abstencao_falsa).length;
-  const recusas=CONS.reduce((s,c)=>s+(c.recusa_hora||0)+(c.recusa_dia||0),0);
-
-  $('uso-sub').textContent=`${CONS.length} dúvida(s) em ${JANELA} d · ${nomes.length} de ${TOKENS.length} `
-    +`com token · 1 unidade = 1 DÚVIDA, não 1 chamada de tool`;
-
-  $('uso').innerHTML=nomes.length?nomes.map(p=>{
-    const x=pessoas[p];
-    return `<div class="pl"><span class="nm">${esc(p)}${RECORTE.includes(p)?' · recorte real':''}</span>
-      <span class="qt">${num(x.n)}</span>
-      <span class="cu">${(x.cons/x.n).toFixed(1).replace('.',',')} cons · ${(x.ler/x.n).toFixed(1).replace('.',',')} leit · ${kb(x.by/x.n)}
-      ${x.falsa?` · <b style="color:var(--err)">${x.falsa} falsa abst.</b>`:''}</span></div>`;
-  }).join(''):'<div class="vazio">nenhuma dúvida registrada na janela. A skill <code>dot-vetorial-consulta</code> '
-    +'registra com <code>py vetorial_cli.py consulta --pessoa &lt;nome&gt; --assunto "&lt;o que&gt;"</code> — '
-    +'uma linha por dúvida, com o custo em chamadas nas colunas.</div>';
-
-  const semUso=TOKENS.filter(t=>!nomes.includes(t));
-  $('uso-chips').innerHTML=nomes.map(p=>`<span class="chip ${RECORTE.includes(p)?'rec':''}">${esc(p)}</span>`).join('')
-    +semUso.map(p=>`<span class="chip sem ${RECORTE.includes(p)?'rec':''}">${esc(p)}</span>`).join('');
-
-  $('uso-nota').innerHTML=`<b>O denominador é obrigatório nesta tela.</b> Isto mede quem tem a
-    <i>skill</i>, não quem usa o Cérebro: o <code>consulta_log</code> do gateway grava <code>oid</code>
-    por chamada, e não é legível daqui. Sem o "de ${TOKENS.length} com token" ao lado, o número é
-    propaganda — foi o que aconteceu com a área antiga (83 consultas em 30 dias, 100% de uma pessoa).
-    <br><b>Abstenção e falsa abstenção andam juntas, sempre:</b> ${abst} declarada(s) ·
-    <b>${falsa} falsa(s)</b>. Otimizar uma piora a outra — a regra que abstém 100% no fantasma produz
-    20% de falsa abstenção, e falha nas perguntas difíceis.
-    <br>Recusas de teto na janela: <b>${recusas}</b>. Recusa não é ausência: o gateway devolve
-    HTTP 200 com <code>isError</code>, sem <code>Retry-After</code> e sem header — se a skill não
-    tratar, "limite atingido" é lido como "não existe".`;
+}
+async function mudarStatus(cod,v){
+  const patch={status:v}; if(v==='done')patch.percentual=100;
+  const {error}=await sb.from('vet_plano').update(patch).eq('codigo',cod);
+  if(error){toast('Não salvou: '+error.message);carregar();}else{toast(cod+' → '+SL[v]);}
+}
+async function mudarPct(cod,v){
+  const n=Math.max(0,Math.min(100,parseInt(v||'0',10)));
+  const {error}=await sb.from('vet_plano').update({percentual:n}).eq('codigo',cod);
+  if(error){toast('Não salvou: '+error.message);carregar();}else{toast(cod+' · '+n+'%');}
 }
 
-function bloqueios(){
-  if(!BLOQ.length){
-    $('bqs').innerHTML='<div class="vazio">sem bloqueios publicados — rode '
-      +'<code>py vetorial_cli.py bloqueios --checar</code>.</div>';
-    $('bqs-nota').innerHTML='';return;
+/* ── gráfico ── */
+function grafico(){
+  const comHist=METRICAS.filter(D=>!['testes','duvidas'].includes(D.k));
+  $('g-tabs').innerHTML=comHist.map(D=>
+    `<button class="tab ${D.k===G_ATIVO?'on':''}" onclick="G_ATIVO='${esc(D.k)}';grafico()">${esc(D.rot)}</button>`
+  ).join('');
+  const D=dado(G_ATIVO)||comHist[0];
+  const pts=SERIE.map(d=>({x:d.data,y:(()=>{try{return D.v(d);}catch(e){return null;}})()}))
+                 .filter(p=>p.y!=null&&!isNaN(p.y));
+  const svg=$('chart');
+  if(pts.length<2){
+    svg.innerHTML=`<text x="10" y="90">Ainda não há histórico suficiente para o gráfico — `
+      +`ele se desenha sozinho conforme a medição diária roda.</text>`;
+    return;
   }
+  const W=1000,H=190,ml=46,mr=14,mt=16,mb=26;
+  const ys=pts.map(p=>p.y), y0=Math.min(...ys), y1=Math.max(...ys);
+  const lo=(D.tipo==='pct')?Math.max(0,y0-0.05):Math.max(0,y0-(y1-y0)*.25||0);
+  const hi=(D.tipo==='pct')?Math.min(1,y1+0.05):y1+((y1-y0)*.25||1);
+  const px=i=>ml+(i/(pts.length-1))*(W-ml-mr);
+  const py=v=>mt+(1-((v-lo)/((hi-lo)||1)))*(H-mt-mb);
+  const fmt=v=>D.tipo==='pct'?pct(v):num(Math.round(v));
+  const d=pts.map((p,i)=>`${i?'L':'M'}${px(i).toFixed(1)},${py(p.y).toFixed(1)}`).join(' ');
+  const area=`${d} L${px(pts.length-1).toFixed(1)},${py(lo)} L${px(0).toFixed(1)},${py(lo)} Z`;
+  const ticks=[lo,(lo+hi)/2,hi];
+  const ult=pts[pts.length-1];
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML=
+     ticks.map(t=>`<line class="grade" x1="${ml}" y1="${py(t)}" x2="${W-mr}" y2="${py(t)}"/>
+       <text x="${ml-8}" y="${py(t)+3.5}" text-anchor="end">${fmt(t)}</text>`).join('')
+    +`<path class="area" d="${area}"/><path class="linha" d="${d}"/>`
+    +`<circle class="pt" cx="${px(pts.length-1)}" cy="${py(ult.y)}" r="4"/>`
+    +`<text class="valor" x="${px(pts.length-1)-6}" y="${py(ult.y)-10}" text-anchor="end">${fmt(ult.y)}</text>`
+    +[0,Math.floor((pts.length-1)/2),pts.length-1].map(i=>
+       `<text x="${px(i)}" y="${H-6}" text-anchor="${i===0?'start':i===pts.length-1?'end':'middle'}">${diaBR(pts[i].x)}</text>`).join('');
+}
+
+/* ── fila de trabalho ── */
+function fila(){
+  if(!COR){$('fila').innerHTML='<div class="vazio">sem medição ainda.</div>';return;}
+  const bruto=COR.sem_tag_por_pasta||[];
+  const pp=(Array.isArray(bruto)?bruto:Object.entries(bruto)).slice().sort((a,b)=>b[1]-a[1]);
+  const itens=[
+    ...pp.map(([pasta,n])=>[`sem classificação em ${pasta}`,n]),
+    ['notas grandes demais', COR.acima_40kb],
+    ['arquivos de backup no vault', COR.bak],
+    ['código solto no vault', COR.py_no_vault],
+    ['notas duplicadas', COR.duplicatas_sync],
+    ['notas vazias', COR.vazias],
+  ].filter(x=>x[1]);
+  const mx=Math.max(...itens.map(x=>x[1]),1);
+  $('fila-sub').textContent=`${num(itens.reduce((s,x)=>s+x[1],0))} itens`;
+  $('fila').innerHTML=itens.map(([r,n])=>`<div class="lrow"><span>${esc(r)}</span>
+    <div class="trk"><i class="rm" style="width:${(n/mx)*100}%"></i></div><b>${num(n)}</b></div>`).join('');
+}
+
+/* ── bloqueios ── */
+function bloqueios(){
+  if(!BLOQ.length){$('bqs').innerHTML='<div class="vazio">nada publicado.</div>';return;}
   const hoje=new Date().toISOString().slice(0,10);
+  const ab=BLOQ.filter(b=>b.estado==='aberto').length;
+  $('bq-sub').textContent=`${ab} aberto(s)`;
   $('bqs').innerHTML=BLOQ.map(b=>{
     const d=b.verificado_em?dias(b.verificado_em,hoje):null;
     const cls=b.estado==='caiu'?'caiu':(b.estado==='fechado'?'':b.gravidade);
-    const vcls=d==null?'nunca':(d>CHECAGEM_VELHA?'velho':'fresco');
-    const vtxt=d==null?'nunca checado':(d===0?'checado hoje':`checado ${d} d atrás`);
     return `<div class="bq ${cls}">
-      <div><div class="tt">${esc(b.titulo)}</div>
-        <div class="tr"><b>trava:</b> ${esc(b.trava)}</div>
-        ${b.resultado?`<div class="rs">↳ ${esc(b.resultado)}</div>`:''}</div>
-      <div class="dn">${esc(b.dono)}<br><span style="font-size:10px;text-transform:uppercase;letter-spacing:.5px">${esc(b.gravidade)}</span></div>
-      <div class="vr ${vcls}">${esc(vtxt)}${b.estado==='caiu'?'<br>✓ caiu':''}</div>
-    </div>`;
+      <div class="tt">${esc(b.titulo)}</div>
+      <div class="dn">${esc(b.dono)}</div>
+      <div class="vr ${d==null?'nunca':''}">${b.estado==='caiu'?'✓ resolvido'
+        :(d==null?'nunca checado':(d===0?'checado hoje':`checado há ${d} d`))}</div></div>`;
   }).join('');
-  const caiu=BLOQ.filter(b=>b.estado==='caiu');
-  $('bqs-nota').innerHTML=`<b>Por que cada linha tem data de checagem.</b> Em 24/08 ficou escrito que
-    <code>ler_nota</code> não resolvia caminho nenhum — 22 formatos testados. Em 26/08 a checagem
-    mostrou que resolve, com <code>Pasta\\Sub\\nota.md</code> (barra invertida, com <code>.md</code>).
-    Bloqueio sem data queima o crédito da cobrança: cobra-se da Bruna algo que já funciona e perde-se
-    a atenção do que importa. Item sem checagem há mais de ${CHECAGEM_VELHA} dias fica cinza, não vermelho.
-    ${caiu.length?`<br><b>${caiu.length} caiu/caíram na última checagem</b> (${caiu.map(b=>esc(b.id)).join(', ')})
-      — a premissa mudou, atualize a nota do vault.`:''}
-    <br><b>O que de fato falta no gateway</b>, depois de conferido: tool de <b>delete/recarga</b> do
-    índice e <b>header de rate limit</b> na recusa. As "8 tools documentadas × 4 reais" saiu daqui
-    porque envelheceu: <code>ler_nota</code> funciona e <code>kb_list</code> tem substituto nos MOCs.`;
 }
 
-function mostrarApp(session){USER=session.user;$('gate').classList.remove('show');$('app').classList.add('show');carregar();realtime();}
+/* ── testes ── */
+function testes(){
+  if(!GATE.length){$('tsts').innerHTML='<div class="vazio">sem importação — rode <code>py vetorial_cli.py gate</code>.</div>';return;}
+  $('tsts').innerHTML=GATE.map(t=>{
+    const res=(t.b_label||'—')+(t.b_bom_alto===false?' ↓':'');
+    return `<div class="tst ${t.is_gate?'decide':''}" data-cod="${esc(t.codigo)}"
+         role="button" tabindex="0" aria-expanded="false" aria-controls="td-${esc(t.codigo)}">
+      <div class="cod">${esc(t.codigo)}</div>
+      <div class="tt">${esc(t.titulo)}</div>
+      <div><span class="pill ${esc(t.estado)}">${esc(t.estado)}</span></div>
+      <div class="res">${esc(res)}</div>
+      <div class="det" id="td-${esc(t.codigo)}" style="grid-column:1/-1">
+        <b>Decide:</b> ${esc(t.decide)}
+        ${t.obs?`<br><b>Achado:</b> ${esc(t.obs)}`:''}
+        ${t.b_label?`<br>${esc(t.b_rotulo||'cérebro')}: <b>${esc(t.b_label)}</b>`
+          +(t.b2_label?` · ${esc(t.b2_rotulo||'')}: <b>${esc(t.b2_label)}</b>`:'')
+          +(t.a_label?` · grep no vault: <b>${esc(t.a_label)}</b>`:''):''}
+      </div></div>`;
+  }).join('');
+  const alt=el=>{const c=el.getAttribute('data-cod'),d=$('td-'+c);
+    if(d){const o=d.classList.toggle('show');el.setAttribute('aria-expanded',o?'true':'false');}};
+  $('tsts').addEventListener('click',e=>{const g=e.target.closest('.tst');if(g)alt(g);});
+  $('tsts').addEventListener('keydown',e=>{
+    if(e.key!=='Enter'&&e.key!==' ')return;
+    const g=e.target.closest('.tst'); if(!g)return; e.preventDefault(); alt(g);});
+}
+
+function mostrarApp(s){USER=s.user;$('gate').classList.remove('show');$('app').classList.add('show');carregar();realtime();}
 function mostrarLogin(){pararRealtime();$('app').classList.remove('show');$('gate').classList.add('show');}
 sb.auth.onAuthStateChange((_e,s)=>{s?mostrarApp(s):mostrarLogin();});
 (async()=>{const {data:{session}}=await sb.auth.getSession(); session?mostrarApp(session):mostrarLogin();})();
