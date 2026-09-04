@@ -28,8 +28,8 @@
   .hd .sep{width:1px;height:20px;background:rgba(255,255,255,.16)}
   .hd .tit{font-size:15px;font-weight:350;letter-spacing:.3px;opacity:.92}
   .nav{display:flex;flex-wrap:wrap;gap:4px;margin-left:14px;background:rgba(255,255,255,.08);padding:3px;border-radius:9px}
-  /* 5 itens no menu nao cabem em 375px: no celular a nav desce e ocupa a linha */
-  @media(max-width:560px){.nav{margin-left:0;width:100%;justify-content:center}}
+  /* 6 itens no menu nao cabem em 375px: no celular a nav desce e ocupa a linha */
+  @media(max-width:620px){.nav{margin-left:0;width:100%;justify-content:center}}
   .nav a,.nav span{font:600 12px var(--fonte);padding:5px 12px;border-radius:7px;text-decoration:none;
     color:#D9D2C8;transition:background .15s,color .15s}
   .nav a:hover{background:rgba(255,255,255,.13);color:#fff}
@@ -208,8 +208,11 @@
   .tn-head .cnt{font-size:11px;color:var(--texto-sec);margin-left:auto}
   .tn-body{display:none;padding:0 0 8px 26px}.tn.open .tn-body{display:block}
   .tc{padding:4px 0 4px 0}
-  .tc-head{display:flex;align-items:center;gap:9px;padding:4px 6px;border-radius:7px}
+  .tc-head{display:flex;align-items:center;gap:9px;padding:4px 6px;border-radius:7px;
+           cursor:pointer;user-select:none}
   .tc-head:hover{background:var(--suave)}
+  .tc-head .seta{font-size:9px;color:var(--texto-sec);width:8px;flex:none}
+  .tc>.contas{display:none}.tc.open>.contas{display:flex}
   .tc-head .nm{font-size:12px;font-weight:650;color:var(--grafite-2)}
   .tc-head .cnt{font-size:10.5px;color:var(--texto-sec)}
   .contas{display:flex;flex-wrap:wrap;gap:6px;padding:5px 0 3px 24px}
@@ -272,7 +275,7 @@
   <div class="hd">
     <span class="logo"></span><span class="marca">DOT</span><span class="sep"></span>
     <span class="tit">Batimento</span>
-    <nav class="nav"><a href="index.html">Tasks</a><span class="on">Batimento</span><a href="cerebro.html">Cérebro</a><a href="vetorial.html">Vetorial</a><a href="duvidas.html">Dúvidas</a></nav>
+    <nav class="nav"><a href="roadmap.html">Roadmap</a><a href="index.html">Tasks</a><span class="on">Batimento</span><a href="cerebro.html">Cérebro</a><a href="vetorial.html">Vetorial</a><a href="duvidas.html">Dúvidas</a></nav>
     <span class="dir"><span class="live-dot"></span><span id="hd-mes">—</span>
       <button class="sair" onclick="sair()" title="sair">sair</button></span>
   </div>
@@ -335,6 +338,7 @@
         <button class="mini-btn" onclick="marcarControle()">só as do controle</button>
         <button class="mini-btn" onclick="marcarPeriodicidade('Mensal')">+ mensais</button>
         <button class="mini-btn" onclick="marcarPeriodicidade('Trimestral')">+ trimestrais</button>
+        <button class="mini-btn" id="m-anuais" onclick="alternarAnuais()">mostrar anuais</button>
         <button class="mini-btn" id="m-copiar" onclick="copiarMesAnterior()">copiar do mês anterior</button>
         <button class="mini-btn" onclick="limparSelecao()">limpar seleção</button>
       </div>
@@ -362,6 +366,11 @@ const sb = window.supabase.createClient(SB_URL, SB_ANON,
    injetado por deploy_batimento.py — mesma fonte do CLI e do seed. */
 const GRUPOS={"Vito Ne BR": "Vito Ne", "Vito Ne Global": "Vito Ne", "Hebbron Investment": "Vito Ne", "Copeland Traders Inc": "Vito Ne", "Vito Na BR": "Vito Na", "Vito Na Global": "Vito Na", "Vito Mar BR": "Vito Mar", "Vito Mar Global": "Vito Mar", "Vito Mar - Filhos": "Vito Mar", "Power Rangers": "Vito Mar", "Vito Mau BR": "Vito Mau", "Vito Mau Global": "Vito Mau", "Vito Mau - Filhos": "Vito Mau", "Santa Mônica": "Vito Mau", "Vito Ro BR": "Vito Ro", "Vito Ro Global": "Vito Ro", "Vito Ro - Familia": "Vito Ro", "TJ Investments": "Vito Ro", "Maropar - Ambar": "Maropar (os 5)", "Maropar - Bpool": "Maropar (os 5)", "Maropar - Equal": "Maropar (os 5)", "Maropar - Lead": "Maropar (os 5)", "Maropar - Provence": "Maropar (os 5)"}, ORDEM_GRUPO=["Vito Ne", "Vito Na", "Vito Mar", "Vito Mau", "Vito Ro", "Maropar (os 5)"];
 const grupoDe=c=>GRUPOS[c.carteira]||'';
+const ehAnual=c=>c.periodicidade==='Anual';
+const mesEhJaneiro=()=>String(MES||'').slice(5,7)==='01';
+// imóvel é atualizado 1x/ano: fora de janeiro não polui a fila. Já marcada nunca desaparece.
+const visivelNoMes=c=>!ehAnual(c)||mesEhJaneiro()||MOSTRAR_ANUAL||SEL.has(c.id_conta);
+const anuaisEscondidas=()=>CONTAS.filter(c=>ehAnual(c)&&!visivelNoMes(c)).length;
 const ordGrupo=g=>{const i=ORDEM_GRUPO.indexOf(g);return i<0?99:i;};
 
 const STATUS=['nao','andamento','aguardando','batido'];
@@ -371,7 +380,9 @@ const MES_NOME=['janeiro','fevereiro','março','abril','maio','junho','julho','a
 const MES_CURTO=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
 let CONTAS=[], ITENS=[], CICLOS=[], MES=null, USER=null;
-let SEL=new Set(), ABERTOS=null, ABERTOS_G=null, TREE_OPEN=new Set(), TREE_OPEN_G=new Set();
+let SEL=new Set(), ABERTOS=null, ABERTOS_G=null, TREE_OPEN=new Set(), TREE_OPEN_G=new Set(), TREE_OPEN_C=new Set();
+// 'Anual' (imóveis) só entra na fila em janeiro; fora dele fica escondida atrás deste toggle
+let MOSTRAR_ANUAL=false;
 // busca do montador: guarda o que estava aberto antes de buscar e o que o usuário colapsou
 // DURANTE a busca (senão a cada tecla o nó que casa voltaria a abrir sozinho)
 let BUSCA_SNAP=null, BUSCA_FECHADOS=new Set();
@@ -698,6 +709,9 @@ function abrirMontar(){
   TREE_OPEN=new Set([...new Set(CONTAS.filter(c=>SEL.has(c.id_conta)).map(c=>c.cliente))]);
   TREE_OPEN_G=new Set(CONTAS.filter(c=>SEL.has(c.id_conta)&&grupoDe(c))
     .map(c=>c.cliente+'|'+grupoDe(c)));
+  TREE_OPEN_C=new Set(CONTAS.filter(c=>SEL.has(c.id_conta))
+    .map(c=>c.cliente+'|'+(grupoDe(c)||'')+'|'+c.carteira));
+  MOSTRAR_ANUAL=mesEhJaneiro();
   $('m-h').textContent='Montar '+mesBR(MES);
   const ant=mesAnterior(MES);
   const temAnt=ITENS.some(i=>i.mes===ant);
@@ -712,7 +726,7 @@ function fecharModal(){$('modal').classList.remove('show');}
 
 function agrupado(){   // cliente → grupo → carteira → [contas]
   const g=new Map();
-  CONTAS.filter(c=>c.ativa!==false||SEL.has(c.id_conta)).forEach(c=>{
+  CONTAS.filter(c=>(c.ativa!==false||SEL.has(c.id_conta))&&visivelNoMes(c)).forEach(c=>{
     if(!g.has(c.cliente))g.set(c.cliente,new Map());
     const gr=g.get(c.cliente), gk=grupoDe(c);
     if(!gr.has(gk))gr.set(gk,new Map());
@@ -722,19 +736,25 @@ function agrupado(){   // cliente → grupo → carteira → [contas]
   });
   return g;
 }
-const contasDoCliente=cli=>CONTAS.filter(c=>c.cliente===cli);
-const contasDoGrupo=(cli,gk)=>CONTAS.filter(c=>c.cliente===cli&&grupoDe(c)===gk);
+const contasDoCliente=cli=>CONTAS.filter(c=>c.cliente===cli&&visivelNoMes(c));
+const contasDoGrupo=(cli,gk)=>CONTAS.filter(c=>c.cliente===cli&&grupoDe(c)===gk&&visivelNoMes(c));
+const contasDaCarteira=cart=>CONTAS.filter(c=>c.carteira===cart&&visivelNoMes(c));
 function renderArvore(){
   const q=($('m-busca').value||'').toLowerCase().trim();
   const bate=c=>!q||[c.conta,c.carteira,c.cliente,grupoDe(c),c.id_conta].join(' ').toLowerCase().includes(q);
-  const blocoCart=(carts)=>{
+  const blocoCart=(carts,pref)=>{
     let out='';
     for(const [carteira,contas] of carts){
       const cv=contas.filter(bate);
       if(!cv.length)continue;
       const cm=contas.filter(c=>SEL.has(c.id_conta)).length;
-      out+=`<div class="tc"><div class="tc-head">
+      const ck=pref+'|'+carteira;
+      const cab=TREE_OPEN_C.has(ck);
+      out+=`<div class="tc ${cab?'open':''}"><div class="tc-head" data-k="${esc(ck)}"
+            onclick="alternarArvoreCart(this.dataset.k,event)">
+          <span class="seta">${cab?'▼':'▶'}</span>
           <label class="chk"><input type="checkbox" data-cart="${esc(carteira)}"
+            onclick="event.stopPropagation()"
             onchange="marcarCarteira(this.dataset.cart,this.checked)"
             ${cm===contas.length?'checked':''}>
             <span class="nm">${esc(carteira)}</span></label>
@@ -759,7 +779,7 @@ function renderArvore(){
     const chaves=[...grupos.keys()].sort((a,b)=>ordGrupo(a)-ordGrupo(b)||a.localeCompare(b));
     for(const gk of chaves){
       const carts=grupos.get(gk);
-      if(!gk){ corpo+=blocoCart(carts); continue; }
+      if(!gk){ corpo+=blocoCart(carts,cliente+'|'); continue; }
       const contasG=contasDoGrupo(cliente,gk);
       if(!contasG.filter(bate).length)continue;
       const gm=contasG.filter(c=>SEL.has(c.id_conta)).length;
@@ -774,7 +794,7 @@ function renderArvore(){
               onchange="marcarGrupo(this.dataset.grupo,this.checked)" ${gm===contasG.length?'checked':''}>
             <span class="nm" style="font-size:12.5px">${esc(gk)}</span></span>
           <span class="cnt">${gm}/${contasG.length}</span></div>
-        <div class="tn-body" style="padding-left:20px">${blocoCart(carts)}</div></div>`;
+        <div class="tn-body" style="padding-left:20px">${blocoCart(carts,cliente+'|'+gk)}</div></div>`;
     }
     html+=`<div class="tn ${aberto?'open':''}">
       <div class="tn-head" data-cli="${esc(cliente)}" onclick="alternarArvore(this.dataset.cli,event)">
@@ -790,6 +810,14 @@ function renderArvore(){
       <div class="tn-body">${corpo}</div></div>`;
   }
   $('arvore').innerHTML=html||'<div class="vazio" style="border:none">nada com esse filtro</div>';
+  const ba=$('m-anuais');
+  if(ba){
+    const esc_=anuaisEscondidas();
+    ba.textContent=MOSTRAR_ANUAL?'esconder anuais (imóveis)':(esc_?`mostrar ${esc_} anuais (imóveis)`:'mostrar anuais');
+    ba.style.display=(MOSTRAR_ANUAL||esc_)?'':'none';
+    ba.title=mesEhJaneiro()?'janeiro: as anuais já entram por padrão'
+             :'imóveis são atualizados 1x/ano — fora de janeiro ficam fora da fila';
+  }
   // tri-state (parcialmente marcado): percorre os inputs, sem seletor por valor
   $('arvore').querySelectorAll('input[data-cli]').forEach(el=>{
     const todas=contasDoCliente(el.dataset.cli);
@@ -797,7 +825,7 @@ function renderArvore(){
     el.indeterminate=m>0&&m<todas.length;
   });
   $('arvore').querySelectorAll('input[data-cart]').forEach(el=>{
-    const contas=CONTAS.filter(c=>c.carteira===el.dataset.cart);
+    const contas=contasDaCarteira(el.dataset.cart);
     const m=contas.filter(c=>SEL.has(c.id_conta)).length;
     el.indeterminate=m>0&&m<contas.length;
   });
@@ -822,15 +850,17 @@ function diff(){
 function buscarArvore(){
   const q=($('m-busca').value||'').toLowerCase().trim();
   if(!q){
-    if(BUSCA_SNAP){TREE_OPEN=BUSCA_SNAP.o;TREE_OPEN_G=BUSCA_SNAP.g;}
+    if(BUSCA_SNAP){TREE_OPEN=BUSCA_SNAP.o;TREE_OPEN_G=BUSCA_SNAP.g;TREE_OPEN_C=BUSCA_SNAP.c;}
     BUSCA_SNAP=null; BUSCA_FECHADOS=new Set(); renderArvore(); return;
   }
-  if(!BUSCA_SNAP)BUSCA_SNAP={o:new Set(TREE_OPEN),g:new Set(TREE_OPEN_G)};
+  if(!BUSCA_SNAP)BUSCA_SNAP={o:new Set(TREE_OPEN),g:new Set(TREE_OPEN_G),c:new Set(TREE_OPEN_C)};
   CONTAS.forEach(c=>{
     const gk=grupoDe(c);
     if(![c.conta,c.carteira,c.cliente,gk,c.id_conta].join(' ').toLowerCase().includes(q))return;
     if(!BUSCA_FECHADOS.has(c.cliente))TREE_OPEN.add(c.cliente);
     if(gk&&!BUSCA_FECHADOS.has(c.cliente+'|'+gk))TREE_OPEN_G.add(c.cliente+'|'+gk);
+    const ck=c.cliente+'|'+(gk||'')+'|'+c.carteira;
+    if(!BUSCA_FECHADOS.has(ck))TREE_OPEN_C.add(ck);
   });
   renderArvore();
 }
@@ -847,11 +877,11 @@ function alternarArvore(cli,e){
 }
 function marcarConta(id,on){on?SEL.add(id):SEL.delete(id);renderArvore();}
 function marcarCarteira(cart,on){
-  CONTAS.filter(c=>c.carteira===cart).forEach(c=>on?SEL.add(c.id_conta):SEL.delete(c.id_conta));
+  contasDaCarteira(cart).forEach(c=>on?SEL.add(c.id_conta):SEL.delete(c.id_conta));
   renderArvore();
 }
 function marcarCliente(cli,on){
-  CONTAS.filter(c=>c.cliente===cli).forEach(c=>on?SEL.add(c.id_conta):SEL.delete(c.id_conta));
+  contasDoCliente(cli).forEach(c=>on?SEL.add(c.id_conta):SEL.delete(c.id_conta));
   if(on){TREE_OPEN.add(cli);BUSCA_FECHADOS.delete(cli);}
   renderArvore();
 }
@@ -859,6 +889,13 @@ function marcarGrupo(k,on){
   const [cli,gk]=k.split('|');
   contasDoGrupo(cli,gk).forEach(c=>on?SEL.add(c.id_conta):SEL.delete(c.id_conta));
   if(on){TREE_OPEN.add(cli);TREE_OPEN_G.add(k);BUSCA_FECHADOS.delete(cli);BUSCA_FECHADOS.delete(k);}
+  renderArvore();
+}
+function alternarArvoreCart(k,e){
+  if(e&&e.target&&e.target.tagName==='INPUT')return;
+  const fechou=TREE_OPEN_C.has(k);
+  fechou?TREE_OPEN_C.delete(k):TREE_OPEN_C.add(k);
+  marcarFechado(k,fechou);
   renderArvore();
 }
 function alternarArvoreGrupo(k,e){
@@ -877,9 +914,16 @@ function marcarControle(){
   toast(fc?`contas do controle de ${fc} marcadas`:'contas do controle marcadas');
 }
 function marcarPeriodicidade(p){
+  if(p==='Anual')MOSTRAR_ANUAL=true;   // pedir as anuais mostra as anuais
   CONTAS.filter(c=>c.periodicidade===p).forEach(c=>{SEL.add(c.id_conta);TREE_OPEN.add(c.cliente);
-    if(grupoDe(c))TREE_OPEN_G.add(c.cliente+'|'+grupoDe(c));});
+    if(grupoDe(c))TREE_OPEN_G.add(c.cliente+'|'+grupoDe(c));
+    TREE_OPEN_C.add(c.cliente+'|'+(grupoDe(c)||'')+'|'+c.carteira);});
   renderArvore();
+}
+function alternarAnuais(){
+  MOSTRAR_ANUAL=!MOSTRAR_ANUAL;
+  renderArvore();
+  toast(MOSTRAR_ANUAL?'mostrando as contas anuais (imóveis)':'contas anuais escondidas');
 }
 function limparSelecao(){SEL=new Set();renderArvore();}
 function copiarMesAnterior(){
