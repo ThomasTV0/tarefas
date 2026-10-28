@@ -182,20 +182,29 @@
     padding:3px 9px;color:var(--grafite-2);cursor:pointer}
   .lnk:hover{border-color:var(--laranja);color:var(--laranja-escuro);background:var(--laranja-tint)}
   /* o plano em lista, na ordem dos passos — sem régua de calendário */
-  .passos{display:flex;flex-direction:column;gap:6px}
-  .ps{display:grid;grid-template-columns:24px minmax(0,1fr) 150px 38px 104px;gap:10px;align-items:center;
-    padding:8px 11px;border:1px solid var(--borda);border-radius:8px;background:var(--suave);font-size:12.5px}
-  .ps.doing{border-left:3px solid var(--laranja);background:var(--card)}
-  .ps.done{opacity:.6}.ps.blocked{border-left:3px solid var(--err)}
-  .ps .nn{font:750 12px var(--fonte);color:var(--grafite-2);text-align:center}
-  .ps .tt{font-weight:650;overflow-wrap:anywhere}
-  .ps .tt small{display:block;font-weight:400;font-size:11.5px;color:var(--texto-sec);margin-top:2px;line-height:1.45}
+  /* 28/10, 2º ajuste ("a formatação disso está pouco espaçada"): linha sem
+     cartão, separador fino, mais respiro, e as colunas repartem o espaço (o
+     título fica com 1,7 e o "quem" com 1) em vez de sobrar um vão no meio */
+  .passos{display:flex;flex-direction:column}
+  .ps,.ps-cab{display:grid;grid-template-columns:36px minmax(220px,1.7fr) minmax(130px,1fr) 52px 118px;
+    column-gap:16px;align-items:center}
+  .ps{padding:13px 12px 13px 9px;border-bottom:1px solid var(--borda);border-left:3px solid transparent;font-size:12.5px}
+  .passos .ps:last-child{border-bottom:0}
+  .ps.doing{border-left-color:var(--laranja)}
+  .ps.done{opacity:.6}.ps.blocked{border-left-color:var(--err)}
+  .ps .nn{font:750 12.5px var(--fonte);color:var(--grafite-2);text-align:center}
+  .ps .tt{font-weight:650;overflow-wrap:anywhere;line-height:1.35}
+  .ps .tt small{display:block;font-weight:400;font-size:11.5px;color:var(--texto-sec);margin-top:5px;line-height:1.45}
   .ps .tt .dep{color:var(--grafite-2)}
-  .ps .dn{font-size:11px;color:var(--texto-sec)}
-  .ps .tam{font:750 11px var(--fonte);text-align:center;border:1px solid var(--borda-2);border-radius:6px;padding:2px 0}
-  .ps-cab{display:grid;grid-template-columns:24px minmax(0,1fr) 150px 38px 104px;gap:10px;padding:0 11px;
+  .ps .dn{font-size:11.5px;color:var(--texto-sec)}
+  .ps .tam{font:750 11px var(--fonte);text-align:center;border:1px solid var(--borda-2);border-radius:6px;padding:3px 0}
+  .ps .sel{width:100%}
+  .ps-cab{padding:0 12px 8px 12px;border-bottom:1px solid var(--borda);
     font:700 10px var(--fonte);text-transform:uppercase;letter-spacing:.6px;color:var(--texto-sec)}
-  @media(max-width:760px){.ps,.ps-cab{grid-template-columns:24px minmax(0,1fr) 38px 96px}.ps .dn,.ps-cab .dn{display:none}}
+  .pn .faixa-rot.plano{margin:20px 0 6px}
+  .pn .faixa-rot.plano:first-of-type{margin-top:4px}
+  @media(max-width:1100px){.ps,.ps-cab{grid-template-columns:32px minmax(0,1.6fr) minmax(110px,1fr) 48px 110px;column-gap:12px}}
+  @media(max-width:760px){.ps,.ps-cab{grid-template-columns:28px minmax(0,1fr) 44px 100px}.ps .dn,.ps-cab .dn{display:none}}
   .recorte{display:flex;gap:4px;margin-left:auto}
   .recorte .tab{padding:2px 8px;font-size:11px}
   /* 28/10, noite: áreas e quem usa (o mapa saiu a pedido do Thomas) */
@@ -290,10 +299,10 @@
 
     <div class="pn">
       <h3>Plano até o corte <span id="tl-sub">na ordem dos passos · P dias, M semanas, G meses ou depende de fora</span></h3>
-      <div class="faixa-rot">Passos até o corte</div>
+      <div class="faixa-rot plano">Passos até o corte</div>
       <div class="ps-cab"><span>#</span><span>passo · de que depende</span><span class="dn">quem</span><span>tam.</span><span>estado</span></div>
       <div class="passos" id="tl-fases"></div>
-      <div class="faixa-rot" style="margin-top:16px">Em paralelo</div>
+      <div class="faixa-rot plano">Em paralelo</div>
       <div class="passos" id="tl-projetos"></div>
     </div>
 
@@ -357,7 +366,7 @@ const VAULT='Cerebro Dot';
    rodando a página velha, com os dados novos chegando pelo realtime, e mostrou
    números e linhas que a página nova já não mostra. Agora a página confere de
    tempos em tempos se a versão publicada mudou e, se mudou, recarrega. */
-const VERSAO='2026-10-28T18:56:22';
+const VERSAO='2026-10-28T19:02:31';
 setInterval(async()=>{
   try{
     const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});
