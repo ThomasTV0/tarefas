@@ -346,7 +346,7 @@ const VAULT='Cerebro Dot';
    rodando a página velha, com os dados novos chegando pelo realtime, e mostrou
    números e linhas que a página nova já não mostra. Agora a página confere de
    tempos em tempos se a versão publicada mudou e, se mudou, recarrega. */
-const VERSAO='2026-10-28T18:34:10';
+const VERSAO='2026-10-28T18:36:46';
 setInterval(async()=>{
   try{
     const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});
@@ -681,11 +681,14 @@ function timeline(){
   const po=POR(COR);
   const linha=(p,i)=>{
     const d=det(p);
-    const dep=d.depende&&d.depende!=='—'?`<span class="dep">depende de: ${esc(d.depende)}</span> · `:'';
-    const extra=p.codigo==='passo_corte'&&po.total?` · portão ${num(po.prontas)} de ${num(po.total)}`:'';
+    /* "no plano tem muito texto" (Thomas, 28/10): embaixo do passo fica só o
+       "depende de"; o detalhe aparece ao passar o mouse */
+    const dep=d.depende&&d.depende!=='—'?`depende de: ${esc(d.depende)}`:'';
+    const extra=p.codigo==='passo_corte'&&po.total?`portão ${num(po.prontas)} de ${num(po.total)}`:'';
+    const sub=[dep,extra].filter(Boolean).join(' · ');
     return `<div class="ps ${esc(p.status)}">
       <div class="nn">${i+1}</div>
-      <div class="tt">${esc(p.titulo)}<small>${dep}${esc(d.texto||'')}${extra}</small></div>
+      <div class="tt" title="${esc(d.texto||'')}">${esc(p.titulo)}${sub?`<small>${sub}</small>`:''}</div>
       <div class="dn">${esc(p.dono||'')}</div>
       <div class="tam" title="P dias · M semanas · G meses ou depende de fora">${esc(d.tamanho||'—')}</div>
       <select class="sel" onchange="mudarStatus('${esc(p.codigo)}',this.value)">
@@ -766,18 +769,17 @@ function grafico(){
 function areasCerebro(){
   const A=PN(COR).areas;
   if(!A||!A.por_area){$('areas').innerHTML='<div class="vazio">sem dado — rode a medição.</div>';$('ar-sub').textContent='';return;}
-  const tot=A.total||1, mbTot=Object.values(A.por_area).reduce((s,x)=>s+x.bytes,0)||1;
+  const tot=A.total||1;
   const lin=Object.entries(A.por_area).filter(([a])=>a!=='sem área').sort((a,b)=>b[1].notas-a[1].notas);
   const mx=Math.max(...lin.map(([,x])=>x.notas),1);
-  const mb=b=>(b/1048576).toLocaleString('pt-BR',{maximumFractionDigits:1})+' MB';
   const pc=v=>v>0&&v<0.01?'<1%':pct(v);   /* área pequena não pode virar 0% */
   $('ar-sub').textContent=`${num(A.total)} notas · % das notas`;
   const sa=A.por_area['sem área'];
   $('areas').innerHTML=lin.map(([a,x])=>`<div class="arow ${AREA===a?'on':(AREA?'fosco':'')}">
       <span>${esc(a)}</span><div class="trk"><i style="width:${(x.notas/mx)*100}%"></i></div>
-      <b>${pc(x.notas/tot)} · ${num(x.notas)} · ${mb(x.bytes)}</b></div>`).join('')
+      <b>${pc(x.notas/tot)} · ${num(x.notas)}</b></div>`).join('')
     +`<div class="nota-rod">${sa?`<b>Sem área:</b> ${num(sa.notas)} nota(s) (${pc(sa.notas/tot)}) — ${esc((A.sem_area||[]).slice(0,6).join(', '))}${(A.sem_area||[]).length>6?'…':''}<br>`:''}`
-    +`Critério: nota em duas áreas conta na área principal, para a soma fechar em 100%. Tamanho em MB do texto (${mb(mbTot)} no total).</div>`;
+    +`Critério: nota em duas áreas conta na área principal, para a soma fechar em 100%.</div>`;
 }
 
 /* ── quem mais usa ──
