@@ -212,6 +212,28 @@
   @media(max-width:760px){.ps,.ps-cab{grid-template-columns:24px minmax(0,1fr) 38px 96px}.ps .dn,.ps-cab .dn{display:none}}
   .recorte{display:flex;gap:4px;margin-left:auto}
   .recorte .tab{padding:2px 8px;font-size:11px}
+  /* 28/10, noite: áreas, quem usa e o mapa */
+  .arow{display:grid;grid-template-columns:110px minmax(0,1fr) 150px;gap:10px;align-items:center;font-size:12.5px;padding:3px 0}
+  .arow .trk{height:9px}
+  .arow .rm{background:var(--laranja)}
+  .arow.on{font-weight:700}.arow.on .rm{background:var(--laranja-escuro)}
+  .arow.fosco{opacity:.45}
+  .arow b{text-align:right;font-weight:650;font-variant-numeric:tabular-nums}
+  .nota-rod{font-size:11.5px;color:var(--texto-sec);margin-top:8px;line-height:1.5}
+  .rk{display:grid;grid-template-columns:22px 130px minmax(0,1fr) 60px;gap:10px;align-items:center;font-size:12.5px;padding:3px 0}
+  .rk .ps2{font:750 11px var(--fonte);color:var(--texto-sec);text-align:right}
+  .rk b{text-align:right;font-variant-numeric:tabular-nums}
+  .rk .rm{background:var(--grafite-2)}
+  .rk.rot{opacity:.6}.rk.rot .rm{background:var(--borda-2)}
+  .mapa{width:100%;height:440px;display:block}
+  .mapa .ar{stroke:var(--borda-2)}
+  .mapa .ar.on{stroke:var(--laranja)}
+  .mapa .na{fill:var(--laranja);stroke:#fff;stroke-width:2}
+  .mapa .nh{fill:var(--grafite);stroke:#fff;stroke-width:1.5}
+  .mapa .na.fosco,.mapa .nh.fosco{opacity:.35}
+  .mapa text{font:600 11px var(--fonte);fill:var(--grafite);paint-order:stroke;stroke:var(--bg);stroke-width:3px}
+  .mapa text.h{font-size:9.5px;font-weight:500;fill:var(--grafite-2)}
+  @media(max-width:700px){.arow{grid-template-columns:84px minmax(0,1fr) 110px}.rk{grid-template-columns:18px 96px minmax(0,1fr) 50px}}
   .vazio{font-size:12px;color:var(--texto-sec);line-height:1.55}
   .rod{font-size:11px;color:var(--texto-sec);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
   .rod code{background:var(--card);border:1px solid var(--borda);border-radius:5px;padding:1px 5px;
@@ -279,6 +301,23 @@
 
     <div class="grid2">
       <div class="pn">
+        <h3>Quanto cada área tem do Cérebro <span id="ar-sub">—</span></h3>
+        <div id="areas"></div>
+      </div>
+      <div class="pn">
+        <h3>Quem mais usa <span class="recorte" id="uso-modo"></span></h3>
+        <div class="gcabe" id="uso-rec" style="margin-bottom:8px"></div>
+        <div id="uso"></div>
+      </div>
+    </div>
+
+    <div class="pn">
+      <h3>Mapa do Cérebro <span>áreas (laranja) e hubs (grafite) · linhas = links entre elas · sem nota de cliente</span></h3>
+      <svg class="mapa" id="mapa" viewBox="0 0 1000 440" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <div class="grid2">
+      <div class="pn">
         <h3>Fila de trabalho <span id="fila-sub">—</span></h3>
         <div class="lin" id="fila"></div>
       </div>
@@ -320,7 +359,7 @@ const VAULT='Cerebro Dot';
    rodando a página velha, com os dados novos chegando pelo realtime, e mostrou
    números e linhas que a página nova já não mostra. Agora a página confere de
    tempos em tempos se a versão publicada mudou e, se mudou, recarrega. */
-const VERSAO='2026-10-28T18:11:31';
+const VERSAO='2026-10-28T18:26:05';
 setInterval(async()=>{
   try{
     const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});
@@ -488,6 +527,10 @@ async function carregar(){
     sb.from('cerebro_consultas').select('pessoa,data,nota').limit(5000),
     sb.from('vet_bloqueios').select('*').order('ordem'),
     sb.from('vet_plano').select('*').order('ordem')]);
+  /* o export do servidor, se a tabela já existir (sql/schema_vetorial_v3.sql);
+     sem ela, o ranking de consulta usa o registro da skill */
+  try{ const u=await sb.from('vet_uso_servidor').select('data,pessoa,notas_distintas').limit(20000);
+       USO_SERV=u.error?[]:(u.data||[]); }catch(e){ USO_SERV=[]; }
   if(c.error){
     toast('Erro ao carregar: '+c.error.message);
     return;
@@ -519,7 +562,7 @@ function render(){
   $('area-sel').innerHTML=`<option value="">todas</option>`
     +AREAS.map(a=>`<option ${a===AREA?'selected':''}>${a}</option>`).join('');
   $('t-rot').textContent=AREA?`Dados · área ${AREA}`:'Dados';
-  tiles(); timeline(); grafico(); fila(); bloqueios();
+  tiles(); timeline(); grafico(); areasCerebro(); usoQuem(); mapa(); fila(); bloqueios();
   $('rod-gw').innerHTML = COR
     ? `Cérebro ${COR.health_ok?`<b>no ar</b> · ${num(COR.health_ms)} ms`:'<b>fora</b>'} · medido em ${fmtBR(COR.data)}`
     : 'sem medição';
@@ -727,6 +770,113 @@ function grafico(){
     +`<text class="valor" x="${px(ult)-6}" y="${py(ult.y)-10}" text-anchor="end">${fmt(ult.y)}</text>`
     +[0,Math.floor((pts.length-1)/2),pts.length-1].map(i=>
        `<text x="${px(pts[i])}" y="${H-6}" text-anchor="${i===0?'start':i===pts.length-1?'end':'middle'}">${diaBR(pts[i].x)}</text>`).join('');
+}
+
+
+/* ── quanto cada área tem do Cérebro ──
+   Nota em mais de uma área conta só na área principal (a primeira), para a
+   soma fechar em 100%. O que não tem área vai à parte. */
+function areasCerebro(){
+  const A=PN(COR).areas;
+  if(!A||!A.por_area){$('areas').innerHTML='<div class="vazio">sem dado — rode a medição.</div>';$('ar-sub').textContent='';return;}
+  const tot=A.total||1, mbTot=Object.values(A.por_area).reduce((s,x)=>s+x.bytes,0)||1;
+  const lin=Object.entries(A.por_area).filter(([a])=>a!=='sem área').sort((a,b)=>b[1].notas-a[1].notas);
+  const mx=Math.max(...lin.map(([,x])=>x.notas),1);
+  const mb=b=>(b/1048576).toLocaleString('pt-BR',{maximumFractionDigits:1})+' MB';
+  const pc=v=>v>0&&v<0.01?'<1%':pct(v);   /* área pequena não pode virar 0% */
+  $('ar-sub').textContent=`${num(A.total)} notas · % das notas`;
+  const sa=A.por_area['sem área'];
+  $('areas').innerHTML=lin.map(([a,x])=>`<div class="arow ${AREA===a?'on':(AREA?'fosco':'')}">
+      <span>${esc(a)}</span><div class="trk"><i class="rm" style="width:${(x.notas/mx)*100}%"></i></div>
+      <b>${pc(x.notas/tot)} · ${num(x.notas)} · ${mb(x.bytes)}</b></div>`).join('')
+    +`<div class="nota-rod">${sa?`<b>Sem área:</b> ${num(sa.notas)} nota(s) (${pc(sa.notas/tot)}) — ${esc((A.sem_area||[]).slice(0,6).join(', '))}${(A.sem_area||[]).length>6?'…':''}<br>`:''}`
+    +`Critério: nota em duas áreas conta na área principal, para a soma fechar em 100%. Tamanho em MB do texto (${mb(mbTot)} no total).</div>`;
+}
+
+/* ── quem mais usa ──
+   Criação: do vault (criado_por e atualizado_por, pela data da nota).
+   Consulta: o export do servidor (vet_uso_servidor) quando existir; até lá, o
+   registro da skill (cerebro_consultas), que subestima. Rotinas automáticas
+   ficam marcadas e embaixo, separadas das pessoas. */
+let USO_MODO='criacao', USO_DIAS=30, USO_SERV=[];
+function usoQuem(){
+  $('uso-modo').innerHTML=[['criacao','criação'],['consulta','consulta']].map(([k,r])=>
+    `<button class="tab ${k===USO_MODO?'on':''}" onclick="USO_MODO='${k}';usoQuem()">${r}</button>`).join('');
+  $('uso-rec').innerHTML=RECORTES.map(([n,r])=>
+    `<button class="tab ${n===USO_DIAS?'on':''}" onclick="USO_DIAS=${n};usoQuem()">${r}</button>`).join('');
+  const ini=USO_DIAS?iso(new Date(Date.now()-(USO_DIAS-1)*86400000)):'';
+  let pontos={}, rod='';
+  if(USO_MODO==='criacao'){
+    const C=PN(COR).criacao;
+    if(!C){$('uso').innerHTML='<div class="vazio">sem dado — rode a medição.</div>';return;}
+    const somar=(fonte,peso)=>Object.entries(fonte||{}).forEach(([p,d])=>{
+      Object.entries(d).forEach(([dia,n])=>{ if(dia>=ini){ pontos[p]=pontos[p]||[0,0]; pontos[p][peso]+=n; } }); });
+    somar(C.criadas,0); somar(C.edicoes,1);
+    rod='Notas criadas + edições, pela data no cabeçalho da nota (criado_por e atualizado_por). '
+       +'Quem só aparece em "contribuidores" não conta: o campo não tem data.';
+  }else{
+    if(USO_SERV.length){
+      USO_SERV.filter(r=>r.data>=ini).forEach(r=>{pontos[r.pessoa]=pontos[r.pessoa]||[0,0];pontos[r.pessoa][0]+=(r.notas_distintas||0);});
+      rod='Notas distintas lidas por dia, do registro do servidor (consulta_log).';
+    }else{
+      CONS_TODAS.filter(c=>c.data>=ini).forEach(c=>{pontos[c.pessoa]=pontos[c.pessoa]||[0,0];pontos[c.pessoa][0]+=1;});
+      rod='Consultas registradas pela skill; o registro do servidor ainda não chega aqui, então quem não tem a skill nova aparece sem consulta.';
+    }
+  }
+  const tot=v=>v[0]+v[1];
+  const linhas=Object.entries(pontos).filter(([,v])=>tot(v)>0);
+  const gente=linhas.filter(([p])=>!/rotina/i.test(p)).sort((a,b)=>tot(b[1])-tot(a[1]));
+  const rot=linhas.filter(([p])=>/rotina/i.test(p)).sort((a,b)=>tot(b[1])-tot(a[1]));
+  const mx=Math.max(...linhas.map(([,v])=>tot(v)),1);
+  const det=v=>USO_MODO==='criacao'?`${num(v[0])} criadas · ${num(v[1])} edições`:'';
+  const row=([p,v],i,cls)=>`<div class="rk ${cls}" title="${esc(det(v))}"><span class="ps2">${cls?'':i+1}</span>
+      <span>${esc(p)}</span><div class="trk"><i class="rm" style="width:${(tot(v)/mx)*100}%"></i></div><b>${num(tot(v))}</b></div>`;
+  $('uso').innerHTML=(gente.length?gente.map((x,i)=>row(x,i,'')).join(''):'<div class="vazio">sem dado neste recorte.</div>')
+    +(rot.length?`<div class="nota-rod" style="margin:8px 0 2px"><b>Rotinas automáticas</b></div>`+rot.map((x,i)=>row(x,i,'rot')).join(''):'')
+    +`<div class="nota-rod">${rod}</div>`;
+}
+
+/* ── mapa do Cérebro: áreas + hubs, nunca nota de cliente ──
+   Layout por força, simples e determinístico (sem aleatório: a mesma foto
+   desenha o mesmo mapa). Área = laranja, tamanho pelo nº de notas; hub =
+   grafite, pelo nº de links que sai dele. Linha = links somados. */
+function mapa(){
+  const G=PN(COR).grafo, svg=$('mapa');
+  if(!G||!G.nos||!G.nos.length){svg.innerHTML='<text x="20" y="40">sem dado — rode a medição.</text>';return;}
+  const W=1000,H=440, nos=G.nos.map(n=>({...n})), idx={};
+  nos.forEach((n,i)=>idx[n.id]=i);
+  const areas=nos.filter(n=>n.tipo==='area');
+  areas.forEach((n,i)=>{const a=2*Math.PI*i/areas.length; n.x=W/2+300*Math.cos(a); n.y=H/2+150*Math.sin(a);});
+  let k=0;
+  nos.filter(n=>n.tipo==='hub').forEach(n=>{const p=nos[idx['area:'+n.area]]||{x:W/2,y:H/2};
+    const a=k++*2.399; n.x=p.x+60*Math.cos(a); n.y=p.y+40*Math.sin(a);});
+  const ar=G.arestas.filter(([a,b])=>a in idx&&b in idx);
+  const r=n=>n.tipo==='area'?8+Math.sqrt(n.n)*0.9:3+Math.sqrt(n.n)*0.8;
+  for(let it=0;it<400;it++){
+    const t=1-it/400;
+    nos.forEach(n=>{n.vx=0;n.vy=0;});
+    for(let i=0;i<nos.length;i++)for(let j=i+1;j<nos.length;j++){
+      const a=nos[i],b=nos[j];let dx=a.x-b.x,dy=a.y-b.y;let d=Math.hypot(dx,dy)||1;
+      const f=2600/(d*d); dx/=d;dy/=d; a.vx+=dx*f;a.vy+=dy*f;b.vx-=dx*f;b.vy-=dy*f;}
+    ar.forEach(([x,y,w])=>{const a=nos[idx[x]],b=nos[idx[y]];const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1;
+      const alvo=(a.tipo==='area'&&b.tipo==='area')?220:70;
+      const f=(d-alvo)*0.02*Math.min(1,0.3+Math.log10(w+1)/3);
+      a.vx+=dx/d*f;a.vy+=dy/d*f;b.vx-=dx/d*f;b.vy-=dy/d*f;});
+    nos.forEach(n=>{n.vx+=(W/2-n.x)*0.004;n.vy+=(H/2-n.y)*0.008;
+      n.x+=Math.max(-12,Math.min(12,n.vx))*t; n.y+=Math.max(-12,Math.min(12,n.vy))*t;
+      n.x=Math.max(40,Math.min(W-40,n.x)); n.y=Math.max(24,Math.min(H-24,n.y));});
+  }
+  const mxw=Math.max(...ar.map(e=>e[2]),1);
+  const liga=new Set(); if(AREA){ar.forEach(([a,b])=>{if(a==='area:'+AREA||b==='area:'+AREA){liga.add(a);liga.add(b);}});}
+  const fosco=n=>AREA&&n.id!=='area:'+AREA&&!liga.has(n.id)&&n.area!==AREA;
+  svg.innerHTML=ar.map(([a,b,w])=>{const p=nos[idx[a]],q=nos[idx[b]];
+      const on=AREA&&(a==='area:'+AREA||b==='area:'+AREA);
+      return `<line class="ar ${on?'on':''}" x1="${p.x.toFixed(1)}" y1="${p.y.toFixed(1)}" x2="${q.x.toFixed(1)}" y2="${q.y.toFixed(1)}"
+        stroke-width="${(0.6+3.4*Math.log(w+1)/Math.log(mxw+1)).toFixed(2)}" opacity="${AREA&&!on?0.25:0.7}"><title>${num(w)} link(s)</title></line>`;}).join('')
+    +nos.map(n=>`<circle class="${n.tipo==='area'?'na':'nh'} ${fosco(n)?'fosco':''}" cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${r(n).toFixed(1)}">
+        <title>${esc(n.rot)} · ${num(n.n)} ${n.tipo==='area'?'notas':'links'}</title></circle>`).join('')
+    +nos.map(n=>`<text class="${n.tipo==='area'?'':'h'}" x="${n.x.toFixed(1)}" y="${(n.y-r(n)-4).toFixed(1)}" text-anchor="middle"
+        opacity="${fosco(n)?0.4:1}">${esc(n.rot)}</text>`).join('');
 }
 
 /* ── fila de trabalho: o que pede uma pessoa, não uma rotina ──
