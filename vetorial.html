@@ -188,6 +188,29 @@
   .bt.pri{background:var(--laranja);color:#3A2A1C}.bt.pri:hover{background:var(--laranja-forte);color:#fff}
   .bt.sec{background:var(--suave);color:var(--texto);border:1px solid var(--borda-2)}
 
+  /* 28/10: "escolher dados" virou botão pequeno no cabeçalho da fileira */
+  .tcab{display:flex;align-items:center;justify-content:space-between;margin:0 0 -4px}
+  .tcab span{font:700 10.5px var(--fonte);text-transform:uppercase;letter-spacing:1px;color:var(--texto-sec)}
+  .lnk{font:650 11.5px var(--fonte);background:none;border:1px solid var(--borda-2);border-radius:7px;
+    padding:3px 9px;color:var(--grafite-2);cursor:pointer}
+  .lnk:hover{border-color:var(--laranja);color:var(--laranja-escuro);background:var(--laranja-tint)}
+  /* o plano em lista, na ordem dos passos — sem régua de calendário */
+  .passos{display:flex;flex-direction:column;gap:6px}
+  .ps{display:grid;grid-template-columns:24px minmax(0,1fr) 150px 38px 104px;gap:10px;align-items:center;
+    padding:8px 11px;border:1px solid var(--borda);border-radius:8px;background:var(--suave);font-size:12.5px}
+  .ps.doing{border-left:3px solid var(--laranja);background:var(--card)}
+  .ps.done{opacity:.6}.ps.blocked{border-left:3px solid var(--err)}
+  .ps .nn{font:750 12px var(--fonte);color:var(--grafite-2);text-align:center}
+  .ps .tt{font-weight:650;overflow-wrap:anywhere}
+  .ps .tt small{display:block;font-weight:400;font-size:11.5px;color:var(--texto-sec);margin-top:2px;line-height:1.45}
+  .ps .tt .dep{color:var(--grafite-2)}
+  .ps .dn{font-size:11px;color:var(--texto-sec)}
+  .ps .tam{font:750 11px var(--fonte);text-align:center;border:1px solid var(--borda-2);border-radius:6px;padding:2px 0}
+  .ps-cab{display:grid;grid-template-columns:24px minmax(0,1fr) 150px 38px 104px;gap:10px;padding:0 11px;
+    font:700 10px var(--fonte);text-transform:uppercase;letter-spacing:.6px;color:var(--texto-sec)}
+  @media(max-width:760px){.ps,.ps-cab{grid-template-columns:24px minmax(0,1fr) 38px 96px}.ps .dn,.ps-cab .dn{display:none}}
+  .recorte{display:flex;gap:4px;margin-left:auto}
+  .recorte .tab{padding:2px 8px;font-size:11px}
   .vazio{font-size:12px;color:var(--texto-sec);line-height:1.55}
   .rod{font-size:11px;color:var(--texto-sec);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
   .rod code{background:var(--card);border:1px solid var(--borda);border-radius:5px;padding:1px 5px;
@@ -233,19 +256,20 @@
   </div>
 
   <div class="wrap">
+    <div class="tcab"><span>Dados</span><button class="lnk" onclick="abrirModal()" title="escolher quais dados aparecem">＋ escolher dados</button></div>
     <div class="tiles" id="tiles"></div>
 
     <div class="pn">
-      <h3>Plano até o corte <span id="tl-sub">—</span></h3>
-      <div class="faixa-rot">Etapas até o corte</div>
-      <div class="meses" id="meses"></div>
-      <div class="tl fase" id="tl-fases"></div>
-      <div class="faixa-rot" style="margin-top:16px">Frentes em paralelo</div>
-      <div class="tl" id="tl-projetos"></div>
+      <h3>Plano até o corte <span id="tl-sub">na ordem dos passos · P dias, M semanas, G meses ou depende de fora</span></h3>
+      <div class="faixa-rot">Passos até o corte</div>
+      <div class="ps-cab"><span>#</span><span>passo · de que depende</span><span class="dn">quem</span><span>tam.</span><span>estado</span></div>
+      <div class="passos" id="tl-fases"></div>
+      <div class="faixa-rot" style="margin-top:16px">Em paralelo</div>
+      <div class="passos" id="tl-projetos"></div>
     </div>
 
     <div class="pn">
-      <h3>Como está evoluindo <span>últimos 30 dias</span></h3>
+      <h3>Como está evoluindo <span id="g-sub"></span><span class="recorte" id="g-rec"></span></h3>
       <div class="gcabe" id="g-tabs"></div>
       <svg class="chart" id="chart" preserveAspectRatio="none"></svg>
     </div>
@@ -289,6 +313,18 @@ const SB_URL='https://suhmrwjqlzvfjbagyvif.supabase.co', SB_ANON='eyJhbGciOiJIUz
 const sb = window.supabase.createClient(SB_URL, SB_ANON,
   {auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}});
 const VAULT='Cerebro Dot';
+/* 28/10: o Thomas deixa a aba aberta. Uma aba carregada antes do deploy seguiu
+   rodando a página velha, com os dados novos chegando pelo realtime, e mostrou
+   números e linhas que a página nova já não mostra. Agora a página confere de
+   tempos em tempos se a versão publicada mudou e, se mudou, recarrega. */
+const VERSAO='2026-10-28T17:55:47';
+setInterval(async()=>{
+  try{
+    const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});
+    const m=(await r.text()).match(/const VERSAO='([^']+)'/);
+    if(m&&m[1]!==VERSAO&&!document.querySelector('.mb.show')) location.reload();
+  }catch(e){}
+},5*60*1000);
 
 /* ── O CATÁLOGO DE DADOS ─────────────────────────────────────────
    Reestruturado em 28/10/2026 a pedido do Thomas ("pensasse em mais pontos que
@@ -314,11 +350,12 @@ const hora=s=>s?String(s).slice(11,16):'';
 
 const G1='Índice e publicação', G2='Adoção do time', G3='Corte do vault';
 const METRICAS=[
-  {k:'fora_indice', g:G1, rot:'Notas fora do índice', bom:'baixo', hist:'corpus',
+  {k:'fora_indice', g:G1, rot:'Notas fora do índice', bom:'baixo', hist:'corpus', hoje:true,
    v:d=>IX(d).fora_indice,
    pe:d=>{const x=IX(d); if(x.erro) return 'não deu para medir: '+esc(x.erro);
-     return `de ${num(x.vault)} no vault · ${num(x.novas)} novas · ${num(x.mudaram)} mudaram desde a rotina das 10h`;}},
-  {k:'publicacao', g:G1, rot:'Publicação de hoje', bom:'alto', hist:'corpus',
+     return `de ${num(x.vault)} no vault · medido às ${esc(hora(PN(d).medido_em)||hora(d.atualizado_em&&new Date(d.atualizado_em).toLocaleString('sv')))}`
+       +`<br><span style="opacity:.8">notas do vault cujo texto ainda não está no Cérebro; a rotina das 10h publica</span>`;}},
+  {k:'publicacao', g:G1, rot:'Publicação de hoje', bom:'alto', hist:'corpus', hoje:true,
    v:d=>PUB(d).rodou_hoje?PUB(d).publicadas:null, den:d=>PUB(d).rodou_hoje?PUB(d).candidatas:null,
    cls:d=>{const p=PUB(d); return (!p.rodou_hoje||p.erros>0)?'ruim':'bom';},
    pe:d=>{const p=PUB(d); if(!p.rodou_hoje) return p.inicio?`a rotina das 10h não rodou hoje · última em ${fmtBR(p.inicio)}`:'a rotina das 10h não rodou';
@@ -371,6 +408,9 @@ const PADRAO=['fora_indice','publicacao','consultando','ra'];
 /* chave nova: a escolha antiga apontava para dados que saíram (testes, notas
    sem acesso) e deixaria o topo quase vazio */
 const CHAVE='vet_tiles_v2';
+/* a escolha da página antiga (chave `vet_tiles`) apontava para dados que não
+   existem mais; some, para nunca voltar a valer */
+try{ localStorage.removeItem('vet_tiles'); }catch(e){}
 
 const SL={todo:'a fazer',doing:'andando',done:'feito',blocked:'travado',cancel:'cancelado'};
 let COR=null, SERIE=[], AD=null, ADS=[], CQ=[], BLOQ=[], PLANO=[], CANAL=null, USER=null;
@@ -378,7 +418,8 @@ let COR=null, SERIE=[], AD=null, ADS=[], CQ=[], BLOQ=[], PLANO=[], CANAL=null, U
 let ESCOLHA=carregarEscolha(), G_ATIVO='ra';
 
 function carregarEscolha(){
-  try{const s=localStorage.getItem(CHAVE); if(s) return JSON.parse(s);}catch(e){}
+  try{const s=localStorage.getItem(CHAVE);
+      if(s){const v=JSON.parse(s).filter(k=>METRICAS.some(m=>m.k===k)); if(v.length) return v;}}catch(e){}
   return PADRAO.slice();
 }
 function gravarEscolha(){ try{localStorage.setItem(CHAVE,JSON.stringify(ESCOLHA));}catch(e){} }
@@ -409,12 +450,12 @@ async function sair(){await sb.auth.signOut();location.reload();}
 /* ── dados ── */
 async function carregar(){
   const desde=iso(new Date(Date.now()-29*86400000));
-  /* a série de consultas precisa de 30 dias ANTES de cada ponto do gráfico */
-  const desdeCons=iso(new Date(Date.now()-59*86400000));
+  /* histórico inteiro: são poucas centenas de linhas, e o recorte do gráfico
+     (7, 30, 90 dias ou tudo) decide o que aparece */
   const [c,a,q,b,p]=await Promise.all([
-    sb.from('vet_corpus_dia').select('*').gte('data',desde).order('data',{ascending:true}),
-    sb.from('cerebro_adocao_dia').select('*').gte('data',desde).order('data',{ascending:true}),
-    sb.from('cerebro_consultas').select('pessoa,data').gte('data',desdeCons),
+    sb.from('vet_corpus_dia').select('*').order('data',{ascending:true}).limit(1000),
+    sb.from('cerebro_adocao_dia').select('*').order('data',{ascending:true}).limit(1000),
+    sb.from('cerebro_consultas').select('pessoa,data').limit(5000),
     sb.from('vet_bloqueios').select('*').order('ordem'),
     sb.from('vet_plano').select('*').order('ordem')]);
   if(c.error){
@@ -442,9 +483,9 @@ function pararRealtime(){ if(CANAL){sb.removeChannel(CANAL);CANAL=null;} }
 /* ── render ── */
 function render(){
   const po=POR(COR), pu=PUB(COR);
-  $('hd-est').textContent = COR
+  $('hd-est').textContent = fotoDeHoje()
     ? `corte ${num(po.prontas)}/${num(po.total)} · rotina das 10h ${pu.rodou_hoje?(pu.erros?'com erro':'ok'):'não rodou hoje'}`
-    : '—';
+    : semFoto();
   tiles(); timeline(); grafico(); fila(); bloqueios();
   $('rod-gw').innerHTML = COR
     ? `Cérebro ${COR.health_ok?`<b>no ar</b> · ${num(COR.health_ms)} ms`:'<b>fora</b>'} · medido em ${fmtBR(COR.data)}`
@@ -455,11 +496,16 @@ function render(){
 }
 
 /* ── valor e série de cada métrica ── */
+/* a foto do dia vale se é de hoje E tem o jsonb do painel; sem isso o cartão
+   diz "sem medição hoje" — nunca cai num número de outra régua */
+function fotoDeHoje(){ return !!(COR&&COR.data===hojeISO()&&Object.keys(PN(COR)).length); }
+function semFoto(){ return COR?`sem medição hoje · última em ${fmtBR(COR.data)}`:'sem medição'; }
 function linhaDe(D){ const f=FONTE[D.k]; return f==='adocao'?(AD||{}):(COR||{}); }
 function valorDe(D){
   const f=FONTE[D.k];
   if(f==='adocao'&&!AD) return null;
   if(!f&&!COR) return null;
+  if(D.hoje&&!fotoDeHoje()) return null;
   try{ const v=D.v(linhaDe(D)); return (v==null||isNaN(v))?null:v; }catch(e){ return null; }
 }
 /* pontos {x,y} dos últimos 30 dias, da fonte da métrica */
@@ -467,7 +513,9 @@ function serie(D){
   const f=FONTE[D.k];
   if(f==='consultas'){
     const pts=[];
-    for(let i=29;i>=0;i--){
+    const prim=CONS_TODAS.map(c=>c.data).sort()[0];
+    const n=prim?Math.min(dias(prim,hojeISO()),400):29;
+    for(let i=n;i>=0;i--){
       const dia=iso(new Date(Date.now()-i*86400000)), ini=iso(new Date(Date.now()-(i+29)*86400000));
       const jan=CONS_TODAS.filter(c=>c.data>=ini&&c.data<=dia);
       pts.push({x:dia,y:D.k==='consultando'?new Set(jan.map(c=>c.pessoa)).size:jan.length});
@@ -475,7 +523,7 @@ function serie(D){
     return pts;
   }
   const rows=f==='adocao'?ADS:SERIE;
-  return rows.map(r=>({x:r.data,y:(()=>{try{return D.v(r);}catch(e){return null;}})()}))
+  return rows.filter(r=>!D.hoje||Object.keys(PN(r)).length).map(r=>({x:r.data,y:(()=>{try{return D.v(r);}catch(e){return null;}})()}))
              .filter(p=>p.y!=null&&!isNaN(p.y));
 }
 
@@ -502,14 +550,14 @@ function tiles(){
   const cards=ESCOLHA.map(k=>{
     const D=dado(k); if(!D) return '';
     const {n,cls}=textoTile(D);
-    let pe=''; try{ pe=(FONTE[k]==='adocao'&&!AD)||(!FONTE[k]&&!COR)?'sem medição':(D.pe?D.pe(linhaDe(D)):''); }catch(e){}
+    let pe=''; try{ pe=(FONTE[k]==='adocao'&&!AD)||(!FONTE[k]&&!COR)?'sem medição'
+                       :(D.hoje&&!fotoDeHoje())?semFoto():(D.pe?D.pe(linhaDe(D)):''); }catch(e){}
     return `<div class="st ${cls}">
       <button class="x" title="tirar do topo" onclick="tirar('${esc(k)}')">✕</button>
       <div class="l">${esc(D.rot)}</div><div class="n">${n}</div>
       <div class="f">${pe}</div>${sparkline(D)}</div>`;
   }).join('');
-  $('tiles').innerHTML=cards
-    +`<div class="st add" onclick="abrirModal()">＋ escolher dados</div>`;
+  $('tiles').innerHTML=cards||'<div class="vazio">nenhum dado escolhido — use “＋ escolher dados”.</div>';
 }
 /* mini-série no tile: 14 últimos pontos, só para dado que tem histórico */
 function sparkline(D){
@@ -544,63 +592,35 @@ function salvarEscolha(){
 }
 $('modal').addEventListener('click',e=>{ if(e.target===$('modal')) fecharModal(); });
 
-/* ── o plano: etapas até o corte + frentes em paralelo ──
-   Sem código na tela (o Thomas não lia "F0/P1"): a primeira coluna é o estado.
-   Linha sem data (o corte) não ganha barra: a data sai do portão.        */
-const GLIFO={todo:'○',doing:'◐',done:'●',blocked:'■'};
+/* ── o plano: passos na ordem, sem calendário ──
+   Regra do Thomas: nada de prazo em dias; data só para marco que ele combinou.
+   Cada linha: o passo, de que depende, quem, tamanho (P/M/G) e o estado, que
+   ele muda aqui. Nenhum código aparece. `depende`/`tamanho` vêm num JSON no
+   `detalhe` (sem coluna própria em vet_plano). */
+function det(p){ try{ const d=JSON.parse(p.detalhe||''); if(d&&typeof d==='object') return d; }catch(e){}
+  return {texto:p.detalhe||''}; }
 function timeline(){
   if(!PLANO.length){
     $('tl-fases').innerHTML='<div class="vazio">sem plano publicado — rode <code>py vetorial_cli.py plano</code>.</div>';
-    $('tl-projetos').innerHTML=''; $('meses').innerHTML=''; return;
-  }
-  const comData=PLANO.filter(p=>p.inicio&&p.fim);
-  const hoje=hojeISO();
-  let INI=null, FIM=null, total=1, hj=0;
-  if(comData.length){
-    const ini0=comData.map(p=>p.inicio).sort()[0], fim0=comData.map(p=>p.fim).sort().pop();
-    INI=ini0.slice(0,8)+'01';
-    const fd=new Date(fim0+'T00:00:00');
-    FIM=iso(new Date(fd.getFullYear(),fd.getMonth()+1,0,12));
-    total=Math.max(1,dias(INI,FIM)); hj=Math.max(0,Math.min(100,(dias(INI,hoje)/total)*100));
-    const M=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-    const cols=[]; let cur=new Date(INI+'T12:00:00');
-    while(iso(cur)<=FIM){ cols.push(M[cur.getMonth()]); cur.setMonth(cur.getMonth()+1); }
-    $('meses').style.gridTemplateColumns=`34px repeat(${cols.length},1fr) 178px`;
-    $('meses').innerHTML='<span></span>'+cols.map(c=>`<span>${c}</span>`).join('')+'<span></span>';
-    $('tl-sub').textContent='a linha vermelha é hoje · clique no estado para mudar';
+    $('tl-projetos').innerHTML=''; return;
   }
   const po=POR(COR);
-  const linha=p=>{
-    const semData=!(p.inicio&&p.fim)||!INI;
-    let barra;
-    if(semData){
-      barra=`<div class="barra todo" style="left:auto;right:0;width:auto;padding:0 10px;border-style:dashed">
-          <span class="lbl">${esc(p.titulo)}${po.total?` · portão ${num(po.prontas)}/${num(po.total)}`:''}</span></div>`;
-    }else{
-      const a=Math.max(0,(dias(INI,p.inicio)/total)*100);
-      const w=Math.max(2.5,(dias(p.inicio,p.fim)/total)*100);
-      const atraso=p.fim<hoje&&p.status!=='done'&&p.status!=='cancel';
-      barra=`<div class="barra ${esc(p.status)} ${w<17?'curta':''}" style="left:${a}%;width:${Math.min(w,100-a)}%">
-          ${p.percentual>0&&p.percentual<100?`<div class="fill" style="width:${100-p.percentual}%;left:auto;right:0;border-radius:0 5px 5px 0"></div>`:''}
-          <span class="lbl">${atraso?'⚠ ':''}${esc(p.titulo)}</span></div>`;
-    }
-    return `<div class="it">
-      <div class="cod" title="${esc(SL[p.status]||p.status)}">${GLIFO[p.status]||'○'}</div>
-      <div class="pista">
-        ${INI?`<div class="hoje" style="left:${hj}%"></div>`:''}${barra}
-      </div>
-      <div class="lado-dir">
-        <span class="dono" title="${esc(p.dono||'')}">${esc(p.dono||'')}</span>
-        <select class="sel" onchange="mudarStatus('${esc(p.codigo)}',this.value)">
-          ${Object.keys(SL).filter(s=>s!=='cancel').map(s=>`<option value="${s}" ${s===p.status?'selected':''}>${SL[s]}</option>`).join('')}
-        </select>
-        <input class="pct" type="number" min="0" max="100" step="10" value="${p.percentual}"
-               onchange="mudarPct('${esc(p.codigo)}',this.value)">
-      </div>
-      <div class="det show">${esc(p.detalhe)}</div></div>`;
+  const linha=(p,i)=>{
+    const d=det(p);
+    const dep=d.depende&&d.depende!=='—'?`<span class="dep">depende de: ${esc(d.depende)}</span> · `:'';
+    const extra=p.codigo==='passo_corte'&&po.total?` · portão ${num(po.prontas)} de ${num(po.total)}`:'';
+    return `<div class="ps ${esc(p.status)}">
+      <div class="nn">${i+1}</div>
+      <div class="tt">${esc(p.titulo)}<small>${dep}${esc(d.texto||'')}${extra}</small></div>
+      <div class="dn">${esc(p.dono||'')}</div>
+      <div class="tam" title="P dias · M semanas · G meses ou depende de fora">${esc(d.tamanho||'—')}</div>
+      <select class="sel" onchange="mudarStatus('${esc(p.codigo)}',this.value)">
+        ${Object.keys(SL).filter(s=>s!=='cancel').map(s=>`<option value="${s}" ${s===p.status?'selected':''}>${SL[s]}</option>`).join('')}
+      </select></div>`;
   };
-  $('tl-fases').innerHTML=PLANO.filter(p=>p.faixa==='fase').map(linha).join('');
-  $('tl-projetos').innerHTML=PLANO.filter(p=>p.faixa==='projeto').map(linha).join('');
+  const ord=f=>PLANO.filter(p=>p.faixa===f).sort((a,b)=>a.ordem-b.ordem);
+  $('tl-fases').innerHTML=ord('fase').map(linha).join('');
+  $('tl-projetos').innerHTML=ord('projeto').map(linha).join('');
 }
 const nomeDe=cod=>{const p=PLANO.find(x=>x.codigo===cod);return p?p.titulo:cod;};
 async function mudarStatus(cod,v){
@@ -615,18 +635,24 @@ async function mudarPct(cod,v){
 }
 
 /* ── gráfico: só o que tem série e ajuda a decidir ── */
+const RECORTES=[[7,'7 dias'],[30,'30 dias'],[90,'90 dias'],[0,'tudo']];
+let G_DIAS=30;
 function grafico(){
+  $('g-rec').innerHTML=RECORTES.map(([n,r])=>
+    `<button class="tab ${n===G_DIAS?'on':''}" onclick="G_DIAS=${n};grafico()">${r}</button>`).join('');
+  $('g-sub').textContent=G_DIAS?`últimos ${G_DIAS} dias`:'todo o histórico';
   const comHist=METRICAS.filter(D=>D.hist);
   if(!dado(G_ATIVO)||!dado(G_ATIVO).hist) G_ATIVO=comHist[0].k;
   $('g-tabs').innerHTML=comHist.map(D=>
     `<button class="tab ${D.k===G_ATIVO?'on':''}" onclick="G_ATIVO='${esc(D.k)}';grafico()">${esc(D.rot)}</button>`
   ).join('');
   const D=dado(G_ATIVO);
-  const pts=serie(D);
+  const corte=G_DIAS?iso(new Date(Date.now()-(G_DIAS-1)*86400000)):'';
+  const pts=serie(D).filter(p=>p.x>=corte);
   const svg=$('chart');
   if(pts.length<2){
     svg.setAttribute('viewBox','0 0 1000 190');
-    svg.innerHTML=`<text x="10" y="90">Ainda não há histórico para este dado — `
+    svg.innerHTML=`<text x="10" y="90">Ainda não há histórico para este dado neste recorte — `
       +`ele se desenha sozinho com a medição diária (começou em 28/10).</text>`;
     return;
   }
