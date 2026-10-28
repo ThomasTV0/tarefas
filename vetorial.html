@@ -236,39 +236,34 @@
     <div class="tiles" id="tiles"></div>
 
     <div class="pn">
-      <h3>Plano de implementação <span id="tl-sub">—</span></h3>
-      <div class="faixa-rot">Fases do tombamento</div>
+      <h3>Plano até o corte <span id="tl-sub">—</span></h3>
+      <div class="faixa-rot">Etapas até o corte</div>
       <div class="meses" id="meses"></div>
       <div class="tl fase" id="tl-fases"></div>
-      <div class="faixa-rot" style="margin-top:16px">Projetos</div>
+      <div class="faixa-rot" style="margin-top:16px">Frentes em paralelo</div>
       <div class="tl" id="tl-projetos"></div>
     </div>
 
     <div class="pn">
-      <h3>Como está evoluindo <span>último mês</span></h3>
+      <h3>Como está evoluindo <span>últimos 30 dias</span></h3>
       <div class="gcabe" id="g-tabs"></div>
       <svg class="chart" id="chart" preserveAspectRatio="none"></svg>
     </div>
 
     <div class="grid2">
       <div class="pn">
-        <h3>Fila de trabalho <span id="fila-sub">no vault</span></h3>
+        <h3>Fila de trabalho <span id="fila-sub">—</span></h3>
         <div class="lin" id="fila"></div>
       </div>
       <div class="pn">
-        <h3>Bloqueios <span id="bq-sub">—</span></h3>
+        <h3>O que falta para liberar <span id="bq-sub">—</span></h3>
         <div class="bqs" id="bqs"></div>
       </div>
     </div>
 
-    <div class="pn">
-      <h3>Testes <span id="tst-sub">clique para ver o que o teste decide</span></h3>
-      <div class="bqs" id="tsts"></div>
-    </div>
-
     <div class="rod">
       <span id="rod-gw">—</span>
-      <span>Medição: <code>py vetorial_cli.py auto</code></span>
+      <span>Medição diária às 10h35: <code>py vetorial_cli.py auto</code></span>
       <span id="rod-upd"></span>
     </div>
   </div>
@@ -295,51 +290,92 @@ const sb = window.supabase.createClient(SB_URL, SB_ANON,
   {auth:{persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}});
 const VAULT='Cerebro Dot';
 
-/* ── O CATÁLOGO DE METRICAS ──────────────────────────────────────
-   Tudo é medido todo dia e guardado em vet_corpus_dia; o que APARECE é escolha
-   do Thomas, guardada no navegador. Os do grupo "Adoção" são as mesmas contas
-   da área Cérebro — medidas aqui para nada se perder quando aquela área morrer.
-   `bom`: 'baixo' = quanto menor melhor · 'alto' = quanto maior melhor       */
-const METRICAS=[
-  {k:'fora_indice', g:'Cérebro vetorial', rot:'Notas fora do índice', bom:'baixo',
-   v:d=>d.divergentes, pe:d=>`de ${num(d.notas_vault)} no vault · carga ${diaBR(d.indice_data)}`},
-  {k:'sem_acesso', g:'Cérebro vetorial', rot:'Sem classificação de acesso', bom:'baixo',
-   v:d=>d.sem_tag_acesso, pe:d=>`${pct((d.sem_tag_acesso||0)/(d.notas_vault||1))} do vault · sem isso a permissão não se aplica`},
-  {k:'testes', g:'Cérebro vetorial', rot:'Testes prontos', bom:'alto',
-   v:()=>GATE.filter(t=>t.estado==='rodado').length, den:()=>GATE.length||10,
-   pe:()=>'concluídos até o fim, de 10'},
-  {k:'notas_grandes', g:'Cérebro vetorial', rot:'Notas grandes demais', bom:'baixo',
-   v:d=>d.acima_40kb, pe:()=>'acima de 40 KB — entregam só um pedaço de si'},
-  {k:'cabe_resposta', g:'Cérebro vetorial', rot:'Notas que cabem na resposta', bom:'alto',
-   v:d=>d.chunk_real_cabem_2, den:d=>d.chunk_real_conhecido,
-   pe:d=>`das ${num(d.chunk_real_conhecido)} que dá para verificar`},
-  {k:'limpar', g:'Cérebro vetorial', rot:'Arquivos para limpar', bom:'baixo',
-   v:d=>(d.vazias||0)+(d.duplicatas_sync||0)+(d.bak||0)+(d.py_no_vault||0),
-   pe:d=>`${d.vazias} vazias · ${d.duplicatas_sync} duplicadas · ${d.bak} backup · ${d.py_no_vault} código`},
-  {k:'gateway', g:'Cérebro vetorial', rot:'Resposta do gateway', bom:'baixo', un:' ms',
-   v:d=>d.health_ok?d.health_ms:null, pe:d=>d.health_ok?'no ar':'não respondeu'},
-  {k:'duvidas', g:'Cérebro vetorial', rot:'Dúvidas registradas', bom:'alto',
-   v:()=>CONS.length, pe:()=>`${new Set(CONS.map(c=>c.pessoa)).size} pessoa(s) de 12 com acesso · 30 dias`},
+/* ── O CATÁLOGO DE DADOS ─────────────────────────────────────────
+   Reestruturado em 28/10/2026 a pedido do Thomas ("pensasse em mais pontos que
+   são relevantes, especialmente levando em consideração o cenário que a gente
+   está agora"). O que APARECE no topo é escolha dele, guardada no navegador.
 
-  {k:'ra', g:'Adoção (o que a área Cérebro mede)', rot:'Pessoas usando', bom:'alto', tipo:'pct',
-   v:d=>d.ra, pe:d=>`${d.pessoas_ativas} de ${d.escopo} pessoas · 30 dias`},
-  {k:'desconc', g:'Adoção (o que a área Cérebro mede)', rot:'Desconcentração', bom:'alto', tipo:'pct',
-   v:d=>d.desconcentracao, pe:d=>`escrito fora de ${(d.top2||[]).join(' e ')||'—'}`},
-  {k:'cobertura', g:'Adoção (o que a área Cérebro mede)', rot:'Áreas cobertas', bom:'alto',
-   v:d=>d.areas_ativas, den:d=>d.areas_total, pe:()=>'áreas com produção no mês'},
-  {k:'notas_criadas', g:'Adoção (o que a área Cérebro mede)', rot:'Notas criadas', bom:'alto',
-   v:d=>d.notas_criadas, pe:()=>'nos últimos 30 dias'},
-  {k:'sem_autor', g:'Adoção (o que a área Cérebro mede)', rot:'Notas sem autor', bom:'baixo',
-   v:d=>d.sem_autor, pe:()=>'sem quem criou no cabeçalho'},
-  {k:'sem_credito', g:'Adoção (o que a área Cérebro mede)', rot:'Edições sem crédito', bom:'baixo',
-   v:d=>d.sem_atualizado_por, pe:()=>'editadas sem registrar quem editou'},
+   Fontes, uma por grupo:
+   • vet_corpus_dia.painel — a foto diária do `vetorial_cli.py auto` (índice pela
+     rotina de publicação, a publicação do dia, adesão declarada, portão). Até o
+     sql/schema_vetorial_v3.sql rodar, o mesmo jsonb vem em por_pessoa._painel.
+   • cerebro_adocao_dia — a adoção do time (tarefa CerebroDot_Adocao), com a
+     série diária que já existe desde agosto.
+   • cerebro_consultas — o registro de consulta (função registrar_consulta).
+   `bom`: 'baixo' = quanto menor melhor · 'alto' = quanto maior melhor
+   `hist`: aparece como aba no gráfico                                       */
+const PN=d=>{ if(!d) return {};
+  const p=d.painel; if(p&&Object.keys(p).length) return p;
+  return (d.por_pessoa||{})._painel||{}; };
+const IX=d=>PN(d).indice||{}, PUB=d=>PN(d).publicacao||{}, ADE=d=>PN(d).adesao||{}, POR=d=>PN(d).portao||{};
+const arr=v=>Array.isArray(v)?v:(typeof v==='string'&&v.startsWith('[')?(()=>{try{return JSON.parse(v.replace(/'/g,'"'));}catch(e){return [];}})():[]);
+const ESCOPO=()=>(AD&&AD.escopo)||13;
+const hora=s=>s?String(s).slice(11,16):'';
+
+const G1='Índice e publicação', G2='Adoção do time', G3='Corte do vault';
+const METRICAS=[
+  {k:'fora_indice', g:G1, rot:'Notas fora do índice', bom:'baixo', hist:'corpus',
+   v:d=>IX(d).fora_indice,
+   pe:d=>{const x=IX(d); if(x.erro) return 'não deu para medir: '+esc(x.erro);
+     return `de ${num(x.vault)} no vault · ${num(x.novas)} novas · ${num(x.mudaram)} mudaram desde a rotina das 10h`;}},
+  {k:'publicacao', g:G1, rot:'Publicação de hoje', bom:'alto', hist:'corpus',
+   v:d=>PUB(d).rodou_hoje?PUB(d).publicadas:null, den:d=>PUB(d).rodou_hoje?PUB(d).candidatas:null,
+   cls:d=>{const p=PUB(d); return (!p.rodou_hoje||p.erros>0)?'ruim':'bom';},
+   pe:d=>{const p=PUB(d); if(!p.rodou_hoje) return p.inicio?`a rotina das 10h não rodou hoje · última em ${fmtBR(p.inicio)}`:'a rotina das 10h não rodou';
+     return `rotina das ${hora(p.inicio)} · ${num(p.ja_em_dia)} já estavam em dia · ${num(p.erros)} erro(s)`;}},
+  {k:'pub_problemas', g:G1, rot:'Problemas na publicação', bom:'baixo',
+   v:d=>{const p=PUB(d); return p.inicio==null?null:(p.erros||0)+(p.puladas||0)+(p.adiadas||0)+(p.sumidas||0);},
+   pe:d=>{const p=PUB(d); return `${num(p.erros)} erro · ${num(p.puladas)} pulada · ${num(p.adiadas)} adiada · ${num(p.sumidas)} sumida do disco`;}},
+  {k:'acervo', g:G1, rot:'Notas no Cérebro', bom:'alto', hist:'corpus',
+   v:d=>IX(d).vault, pe:()=>'notas do vault, publicadas todo dia até o corte'},
+  {k:'limpar', g:G1, rot:'Arquivos para limpar', bom:'baixo',
+   v:d=>{const x=IX(d); return x.vault==null?null:(x.vazias||0)+(x.conflito||0)+(x.utf8||0)+(d.bak||0)+(d.py_no_vault||0);},
+   pe:d=>{const x=IX(d); return `${num(x.vazias)} vazios · ${num(x.conflito)} cópias de conflito · ${num(d.bak)} backup · ${num(d.py_no_vault)} código`;}},
+  {k:'gateway', g:G1, rot:'Resposta do Cérebro', bom:'baixo', un:' ms',
+   v:d=>d.health_ok?d.health_ms:null, pe:d=>d.health_ok?'no ar':'não respondeu'},
+
+  {k:'consultando', g:G2, rot:'Pessoas consultando', bom:'alto', hist:'consultas',
+   v:()=>new Set(CQ.map(c=>c.pessoa)).size, den:()=>ESCOPO(),
+   pe:()=>{const ps=[...new Set(CQ.map(c=>c.pessoa))]; return `${ps.join(', ')||'ninguém'} · registro pela skill · 30 dias`;}},
+  {k:'consultas', g:G2, rot:'Consultas registradas', bom:'alto', hist:'consultas',
+   v:()=>CQ.length,
+   pe:()=>{const t=CQ.filter(c=>c.pessoa==='Thomas').length; return CQ.length?`${pct(t/CQ.length)} do Thomas · 30 dias`:'30 dias';}},
+  {k:'ra', g:G2, rot:'Pessoas usando', bom:'alto', tipo:'pct', hist:'adocao',
+   v:a=>a.escopo?a.pessoas_ativas/a.escopo:null,
+   pe:a=>`${num(a.pessoas_ativas)} de ${num(a.escopo)} · 15 ou mais escritas e consultas em 30 dias`},
+  {k:'escrevendo', g:G2, rot:'Pessoas escrevendo', bom:'alto', hist:'adocao',
+   v:a=>a.escopo?arr(a.escreveram).length:null, den:a=>a.escopo,
+   pe:a=>'ao menos 1 nota em 30 dias'},
+  {k:'instalaram', g:G2, rot:'Máquinas ligadas no Cérebro', bom:'alto',
+   v:d=>ADE(d).instalaram?ADE(d).instalaram.length:null, den:d=>ADE(d).escopo,
+   pe:d=>{const a=ADE(d); return `${(a.instalaram||[]).join(', ')}${(a.provaveis||[]).length?` · provável: ${a.provaveis.join(', ')}`:''} · declarado`;}},
+  {k:'migraram', g:G2, rot:'Migraram para o fluxo novo', bom:'alto',
+   v:d=>ADE(d).migraram?ADE(d).migraram.length:null, den:d=>ADE(d).escopo,
+   pe:d=>`${(ADE(d).migraram||[]).join(', ')||'—'} · /migrar rodado · declarado`},
+  {k:'notas_criadas', g:G2, rot:'Notas criadas', bom:'alto', hist:'adocao',
+   v:a=>a.notas_criadas, pe:()=>'nos últimos 30 dias, rotinas incluídas'},
+  {k:'desconc', g:G2, rot:'Desconcentração', bom:'alto', tipo:'pct',
+   v:a=>a.notas_criadas?1-(a.notas_top2||0)/a.notas_criadas:null,
+   pe:a=>`escrito fora de ${arr(a.top2).join(' e ')||'—'}`},
+  {k:'cobertura', g:G2, rot:'Áreas com produção', bom:'alto',
+   v:a=>a.areas_ativas, den:a=>a.areas_total, pe:()=>'10 ou mais notas em 30 dias'},
+
+  {k:'portao', g:G3, rot:'Portão do corte', bom:'alto',
+   v:d=>POR(d).total?POR(d).prontas:null, den:d=>POR(d).total,
+   pe:()=>'condições prontas, com prova · o corte sai quando forem todas'},
 ];
-const PADRAO=['fora_indice','sem_acesso','testes'];
-const CHAVE='vet_tiles';                 /* preferência local, por navegador */
+/* de onde cada métrica lê: a foto do painel, a adoção ou as consultas */
+const FONTE={ra:'adocao',escrevendo:'adocao',notas_criadas:'adocao',desconc:'adocao',cobertura:'adocao',
+             consultando:'consultas',consultas:'consultas'};
+const PADRAO=['fora_indice','publicacao','consultando','ra'];
+/* chave nova: a escolha antiga apontava para dados que saíram (testes, notas
+   sem acesso) e deixaria o topo quase vazio */
+const CHAVE='vet_tiles_v2';
 
 const SL={todo:'a fazer',doing:'andando',done:'feito',blocked:'travado',cancel:'cancelado'};
-let COR=null, SERIE=[], GATE=[], BLOQ=[], CONS=[], PLANO=[], CANAL=null, USER=null;
-let ESCOLHA=carregarEscolha(), G_ATIVO='fora_indice';
+let COR=null, SERIE=[], AD=null, ADS=[], CQ=[], BLOQ=[], PLANO=[], CANAL=null, USER=null;
+/* o gráfico abre num dado que já tem série (a adoção vem desde agosto) */
+let ESCOLHA=carregarEscolha(), G_ATIVO='ra';
 
 function carregarEscolha(){
   try{const s=localStorage.getItem(CHAVE); if(s) return JSON.parse(s);}catch(e){}
@@ -356,6 +392,8 @@ function fmtBR(iso){if(!iso)return '—';const p=String(iso).slice(0,10).split('
 const diaBR=d=>fmtBR(d).slice(0,5);
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 const dado=k=>METRICAS.find(x=>x.k===k);
+const iso=d=>d.toISOString().slice(0,10);
+const hojeISO=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);};
 
 /* ── auth ── */
 async function enviarLink(){
@@ -370,30 +408,32 @@ async function sair(){await sb.auth.signOut();location.reload();}
 
 /* ── dados ── */
 async function carregar(){
-  const desde=new Date(Date.now()-29*86400000).toISOString().slice(0,10);
-  const [c,g,b,u,p]=await Promise.all([
-    sb.from('vet_corpus_dia').select('*').order('data',{ascending:true}).limit(120),
-    sb.from('vet_gate').select('*').order('ordem'),
+  const desde=iso(new Date(Date.now()-29*86400000));
+  /* a série de consultas precisa de 30 dias ANTES de cada ponto do gráfico */
+  const desdeCons=iso(new Date(Date.now()-59*86400000));
+  const [c,a,q,b,p]=await Promise.all([
+    sb.from('vet_corpus_dia').select('*').gte('data',desde).order('data',{ascending:true}),
+    sb.from('cerebro_adocao_dia').select('*').gte('data',desde).order('data',{ascending:true}),
+    sb.from('cerebro_consultas').select('pessoa,data').gte('data',desdeCons),
     sb.from('vet_bloqueios').select('*').order('ordem'),
-    sb.from('vet_consultas').select('*').gte('data',desde),
     sb.from('vet_plano').select('*').order('ordem')]);
-  if(c.error||g.error){
-    const e=(c.error||g.error);
-    toast('Erro ao carregar: '+e.message);
-    if(/does not exist|schema cache/i.test(e.message))
-      toast('Tabelas não criadas — rode sql/schema_vetorial.sql no Supabase.');
+  if(c.error){
+    toast('Erro ao carregar: '+c.error.message);
     return;
   }
   SERIE=c.data||[]; COR=SERIE.length?SERIE[SERIE.length-1]:null;
-  GATE=g.data||[];
-  if(b.error||u.error||p.error) toast('Não consegui ler parte dos dados.');
-  BLOQ=b.error?[]:(b.data||[]); CONS=u.error?[]:(u.data||[]); PLANO=p.error?[]:(p.data||[]);
+  if(a.error||q.error||b.error||p.error) toast('Não consegui ler parte dos dados.');
+  ADS=a.error?[]:(a.data||[]); AD=ADS.length?ADS[ADS.length-1]:null;
+  CONS_TODAS=q.error?[]:(q.data||[]); CQ=CONS_TODAS.filter(x=>x.data>=desde);
+  BLOQ=b.error?[]:(b.data||[]).filter(x=>x.estado!=='fechado');
+  PLANO=p.error?[]:(p.data||[]).filter(x=>x.status!=='cancel');
   render();
 }
+let CONS_TODAS=[];
 function realtime(){
   if(CANAL) return;
   CANAL=sb.channel('rt-vetorial');
-  ['vet_corpus_dia','vet_gate','vet_bloqueios','vet_consultas','vet_plano'].forEach(t=>
+  ['vet_corpus_dia','cerebro_adocao_dia','cerebro_consultas','vet_bloqueios','vet_plano'].forEach(t=>
     CANAL.on('postgres_changes',{event:'*',schema:'public',table:t},carregar));
   CANAL.subscribe();
 }
@@ -401,28 +441,48 @@ function pararRealtime(){ if(CANAL){sb.removeChannel(CANAL);CANAL=null;} }
 
 /* ── render ── */
 function render(){
-  const fech=GATE.filter(t=>t.estado==='rodado').length;
-  const feitas=PLANO.filter(p=>p.faixa==='fase'&&p.status==='done').length;
-  const nf=PLANO.filter(p=>p.faixa==='fase').length;
-  $('hd-est').textContent = nf?`fase ${feitas}/${nf} · testes ${fech}/${GATE.length||10}`:'—';
-  tiles(); timeline(); grafico(); fila(); bloqueios(); testes();
+  const po=POR(COR), pu=PUB(COR);
+  $('hd-est').textContent = COR
+    ? `corte ${num(po.prontas)}/${num(po.total)} · rotina das 10h ${pu.rodou_hoje?(pu.erros?'com erro':'ok'):'não rodou hoje'}`
+    : '—';
+  tiles(); timeline(); grafico(); fila(); bloqueios();
   $('rod-gw').innerHTML = COR
-    ? `Gateway ${COR.health_ok?`<b>no ar</b> · ${num(COR.health_ms)} ms`:'<b>fora</b>'}`
-      +(COR.endereco_amostra?` · ${COR.endereco_ok}/${COR.endereco_amostra} da amostra estão no índice`:'')
+    ? `Cérebro ${COR.health_ok?`<b>no ar</b> · ${num(COR.health_ms)} ms`:'<b>fora</b>'} · medido em ${fmtBR(COR.data)}`
     : 'sem medição';
-  const ts=[...GATE.map(t=>t.atualizado_em),...PLANO.map(p=>p.atualizado_em),
-            COR&&COR.atualizado_em].filter(Boolean).sort().pop();
+  const ts=[...PLANO.map(p=>p.atualizado_em),COR&&COR.atualizado_em,AD&&AD.atualizado_em]
+            .filter(Boolean).sort().pop();
   $('rod-upd').textContent=ts?('atualizado '+new Date(ts).toLocaleString('pt-BR')):'';
 }
 
-/* ── tiles escolhidos ── */
+/* ── valor e série de cada métrica ── */
+function linhaDe(D){ const f=FONTE[D.k]; return f==='adocao'?(AD||{}):(COR||{}); }
 function valorDe(D){
-  if(!COR&&!(D.k==='testes'||D.k==='duvidas')) return null;
-  try{ return D.v(COR||{}); }catch(e){ return null; }
+  const f=FONTE[D.k];
+  if(f==='adocao'&&!AD) return null;
+  if(!f&&!COR) return null;
+  try{ const v=D.v(linhaDe(D)); return (v==null||isNaN(v))?null:v; }catch(e){ return null; }
 }
+/* pontos {x,y} dos últimos 30 dias, da fonte da métrica */
+function serie(D){
+  const f=FONTE[D.k];
+  if(f==='consultas'){
+    const pts=[];
+    for(let i=29;i>=0;i--){
+      const dia=iso(new Date(Date.now()-i*86400000)), ini=iso(new Date(Date.now()-(i+29)*86400000));
+      const jan=CONS_TODAS.filter(c=>c.data>=ini&&c.data<=dia);
+      pts.push({x:dia,y:D.k==='consultando'?new Set(jan.map(c=>c.pessoa)).size:jan.length});
+    }
+    return pts;
+  }
+  const rows=f==='adocao'?ADS:SERIE;
+  return rows.map(r=>({x:r.data,y:(()=>{try{return D.v(r);}catch(e){return null;}})()}))
+             .filter(p=>p.y!=null&&!isNaN(p.y));
+}
+
+/* ── tiles escolhidos ── */
 function textoTile(D){
   const v=valorDe(D);
-  const den=D.den?D.den(COR||{}):null;
+  let den=null; try{ den=D.den?D.den(linhaDe(D)):null; }catch(e){}
   if(v==null) return {n:'—', cls:'nm'};
   let n;
   if(D.tipo==='pct') n=pct(v);
@@ -430,29 +490,31 @@ function textoTile(D){
   else n=num(v)+(D.un||'');
   /* cor: só onde a direção é inequívoca e o número pede ação */
   let cls='';
-  if(D.bom==='baixo' && v>0) cls='ruim';
-  if(D.bom==='baixo' && v===0) cls='bom';
-  if(D.bom==='alto' && den!=null) cls = (v>=den)?'bom':(v===0?'ruim':'');
+  if(D.cls){ try{ cls=D.cls(linhaDe(D)); }catch(e){} }
+  else{
+    if(D.bom==='baixo' && v>0 && D.k!=='gateway') cls='ruim';
+    if(D.bom==='baixo' && v===0) cls='bom';
+    if(D.bom==='alto' && den!=null) cls = (v>=den)?'bom':(v===0?'ruim':'');
+  }
   return {n, cls};
 }
 function tiles(){
   const cards=ESCOLHA.map(k=>{
     const D=dado(k); if(!D) return '';
     const {n,cls}=textoTile(D);
-    let pe=''; try{ pe=D.pe?D.pe(COR||{}):''; }catch(e){}
+    let pe=''; try{ pe=(FONTE[k]==='adocao'&&!AD)||(!FONTE[k]&&!COR)?'sem medição':(D.pe?D.pe(linhaDe(D)):''); }catch(e){}
     return `<div class="st ${cls}">
       <button class="x" title="tirar do topo" onclick="tirar('${esc(k)}')">✕</button>
       <div class="l">${esc(D.rot)}</div><div class="n">${n}</div>
-      <div class="f">${pe}</div>${sparkline(k)}</div>`;
+      <div class="f">${pe}</div>${sparkline(D)}</div>`;
   }).join('');
   $('tiles').innerHTML=cards
     +`<div class="st add" onclick="abrirModal()">＋ escolher dados</div>`;
 }
-/* mini-série no tile: 14 últimos dias, só para dado que tem histórico */
-function sparkline(k){
-  const D=dado(k); if(!D||D.k==='testes'||D.k==='duvidas') return '';
-  const vs=SERIE.slice(-14).map(d=>{try{return D.v(d);}catch(e){return null;}})
-                .filter(v=>v!=null&&!isNaN(v));
+/* mini-série no tile: 14 últimos pontos, só para dado que tem histórico */
+function sparkline(D){
+  if(!D.hist) return '';
+  const vs=serie(D).slice(-14).map(p=>p.y);
   if(vs.length<3) return '';
   const mx=Math.max(...vs)||1;
   return `<div class="spark">`+vs.map((v,i)=>
@@ -482,167 +544,159 @@ function salvarEscolha(){
 }
 $('modal').addEventListener('click',e=>{ if(e.target===$('modal')) fecharModal(); });
 
-/* ── timeline em duas faixas ── */
+/* ── o plano: etapas até o corte + frentes em paralelo ──
+   Sem código na tela (o Thomas não lia "F0/P1"): a primeira coluna é o estado.
+   Linha sem data (o corte) não ganha barra: a data sai do portão.        */
+const GLIFO={todo:'○',doing:'◐',done:'●',blocked:'■'};
 function timeline(){
   if(!PLANO.length){
     $('tl-fases').innerHTML='<div class="vazio">sem plano publicado — rode <code>py vetorial_cli.py plano</code>.</div>';
     $('tl-projetos').innerHTML=''; $('meses').innerHTML=''; return;
   }
   const comData=PLANO.filter(p=>p.inicio&&p.fim);
-  if(!comData.length){ $('meses').innerHTML=''; return; }
-  const ini0=comData.map(p=>p.inicio).sort()[0], fim0=comData.map(p=>p.fim).sort().pop();
-  const INI=ini0.slice(0,8)+'01';
-  const fd=new Date(fim0+'T00:00:00');
-  const FIM=new Date(fd.getFullYear(),fd.getMonth()+1,0).toISOString().slice(0,10);
-  const total=Math.max(1,dias(INI,FIM)), hoje=new Date().toISOString().slice(0,10);
-  const hj=Math.max(0,Math.min(100,(dias(INI,hoje)/total)*100));
-  const M=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-
-  const cols=[]; let cur=new Date(INI+'T00:00:00');
-  while(cur.toISOString().slice(0,10)<=FIM){ cols.push(M[cur.getMonth()]); cur.setMonth(cur.getMonth()+1); }
-  $('meses').style.gridTemplateColumns=`34px repeat(${cols.length},1fr) 178px`;
-  $('meses').innerHTML='<span></span>'+cols.map(c=>`<span>${c}</span>`).join('')+'<span></span>';
-  $('tl-sub').textContent=`${fmtBR(INI)} → ${fmtBR(FIM)} · a linha vermelha é hoje`;
-
+  const hoje=hojeISO();
+  let INI=null, FIM=null, total=1, hj=0;
+  if(comData.length){
+    const ini0=comData.map(p=>p.inicio).sort()[0], fim0=comData.map(p=>p.fim).sort().pop();
+    INI=ini0.slice(0,8)+'01';
+    const fd=new Date(fim0+'T00:00:00');
+    FIM=iso(new Date(fd.getFullYear(),fd.getMonth()+1,0,12));
+    total=Math.max(1,dias(INI,FIM)); hj=Math.max(0,Math.min(100,(dias(INI,hoje)/total)*100));
+    const M=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    const cols=[]; let cur=new Date(INI+'T12:00:00');
+    while(iso(cur)<=FIM){ cols.push(M[cur.getMonth()]); cur.setMonth(cur.getMonth()+1); }
+    $('meses').style.gridTemplateColumns=`34px repeat(${cols.length},1fr) 178px`;
+    $('meses').innerHTML='<span></span>'+cols.map(c=>`<span>${c}</span>`).join('')+'<span></span>';
+    $('tl-sub').textContent='a linha vermelha é hoje · clique no estado para mudar';
+  }
+  const po=POR(COR);
   const linha=p=>{
-    const a=Math.max(0,(dias(INI,p.inicio||INI)/total)*100);
-    const w=Math.max(2.5,(dias(p.inicio||INI,p.fim||FIM)/total)*100);
-    const atraso=p.fim&&p.fim<hoje&&p.status!=='done'&&p.status!=='cancel';
-    return `<div class="it">
-      <div class="cod">${esc(p.codigo)}</div>
-      <div class="pista" data-cod="${esc(p.codigo)}">
-        <div class="hoje" style="left:${hj}%"></div>
-        <div class="barra ${esc(p.status)} ${w<17?'curta':''}" style="left:${a}%;width:${Math.min(w,100-a)}%">
+    const semData=!(p.inicio&&p.fim)||!INI;
+    let barra;
+    if(semData){
+      barra=`<div class="barra todo" style="left:auto;right:0;width:auto;padding:0 10px;border-style:dashed">
+          <span class="lbl">${esc(p.titulo)}${po.total?` · portão ${num(po.prontas)}/${num(po.total)}`:''}</span></div>`;
+    }else{
+      const a=Math.max(0,(dias(INI,p.inicio)/total)*100);
+      const w=Math.max(2.5,(dias(p.inicio,p.fim)/total)*100);
+      const atraso=p.fim<hoje&&p.status!=='done'&&p.status!=='cancel';
+      barra=`<div class="barra ${esc(p.status)} ${w<17?'curta':''}" style="left:${a}%;width:${Math.min(w,100-a)}%">
           ${p.percentual>0&&p.percentual<100?`<div class="fill" style="width:${100-p.percentual}%;left:auto;right:0;border-radius:0 5px 5px 0"></div>`:''}
-          <span class="lbl">${atraso?'⚠ ':''}${esc(p.titulo)}</span></div>
+          <span class="lbl">${atraso?'⚠ ':''}${esc(p.titulo)}</span></div>`;
+    }
+    return `<div class="it">
+      <div class="cod" title="${esc(SL[p.status]||p.status)}">${GLIFO[p.status]||'○'}</div>
+      <div class="pista">
+        ${INI?`<div class="hoje" style="left:${hj}%"></div>`:''}${barra}
       </div>
       <div class="lado-dir">
         <span class="dono" title="${esc(p.dono||'')}">${esc(p.dono||'')}</span>
         <select class="sel" onchange="mudarStatus('${esc(p.codigo)}',this.value)">
-          ${Object.keys(SL).map(s=>`<option value="${s}" ${s===p.status?'selected':''}>${SL[s]}</option>`).join('')}
+          ${Object.keys(SL).filter(s=>s!=='cancel').map(s=>`<option value="${s}" ${s===p.status?'selected':''}>${SL[s]}</option>`).join('')}
         </select>
         <input class="pct" type="number" min="0" max="100" step="10" value="${p.percentual}"
                onchange="mudarPct('${esc(p.codigo)}',this.value)">
       </div>
-      <div class="det" id="d-${esc(p.codigo)}">${esc(p.detalhe)}
-        ${p.nota_vault?` · <a href="obsidian://open?vault=${encodeURIComponent(VAULT)}&file=${encodeURIComponent(p.nota_vault)}">abrir a nota</a>`:''}
-      </div></div>`;
+      <div class="det show">${esc(p.detalhe)}</div></div>`;
   };
   $('tl-fases').innerHTML=PLANO.filter(p=>p.faixa==='fase').map(linha).join('');
   $('tl-projetos').innerHTML=PLANO.filter(p=>p.faixa==='projeto').map(linha).join('');
-  document.querySelectorAll('.pista').forEach(el=>el.onclick=()=>{
-    const d=$('d-'+el.getAttribute('data-cod')); if(d) d.classList.toggle('show');
-  });
 }
+const nomeDe=cod=>{const p=PLANO.find(x=>x.codigo===cod);return p?p.titulo:cod;};
 async function mudarStatus(cod,v){
   const patch={status:v}; if(v==='done')patch.percentual=100;
   const {error}=await sb.from('vet_plano').update(patch).eq('codigo',cod);
-  if(error){toast('Não salvou: '+error.message);carregar();}else{toast(cod+' → '+SL[v]);}
+  if(error){toast('Não salvou: '+error.message);carregar();}else{toast(nomeDe(cod)+' → '+SL[v]);}
 }
 async function mudarPct(cod,v){
   const n=Math.max(0,Math.min(100,parseInt(v||'0',10)));
   const {error}=await sb.from('vet_plano').update({percentual:n}).eq('codigo',cod);
-  if(error){toast('Não salvou: '+error.message);carregar();}else{toast(cod+' · '+n+'%');}
+  if(error){toast('Não salvou: '+error.message);carregar();}else{toast(nomeDe(cod)+' · '+n+'%');}
 }
 
-/* ── gráfico ── */
+/* ── gráfico: só o que tem série e ajuda a decidir ── */
 function grafico(){
-  const comHist=METRICAS.filter(D=>!['testes','duvidas'].includes(D.k));
+  const comHist=METRICAS.filter(D=>D.hist);
+  if(!dado(G_ATIVO)||!dado(G_ATIVO).hist) G_ATIVO=comHist[0].k;
   $('g-tabs').innerHTML=comHist.map(D=>
     `<button class="tab ${D.k===G_ATIVO?'on':''}" onclick="G_ATIVO='${esc(D.k)}';grafico()">${esc(D.rot)}</button>`
   ).join('');
-  const D=dado(G_ATIVO)||comHist[0];
-  const pts=SERIE.map(d=>({x:d.data,y:(()=>{try{return D.v(d);}catch(e){return null;}})()}))
-                 .filter(p=>p.y!=null&&!isNaN(p.y));
+  const D=dado(G_ATIVO);
+  const pts=serie(D);
   const svg=$('chart');
   if(pts.length<2){
-    svg.innerHTML=`<text x="10" y="90">Ainda não há histórico suficiente para o gráfico — `
-      +`ele se desenha sozinho conforme a medição diária roda.</text>`;
+    svg.setAttribute('viewBox','0 0 1000 190');
+    svg.innerHTML=`<text x="10" y="90">Ainda não há histórico para este dado — `
+      +`ele se desenha sozinho com a medição diária (começou em 28/10).</text>`;
     return;
   }
   const W=1000,H=190,ml=46,mr=14,mt=16,mb=26;
   const ys=pts.map(p=>p.y), y0=Math.min(...ys), y1=Math.max(...ys);
   const lo=(D.tipo==='pct')?Math.max(0,y0-0.05):Math.max(0,y0-(y1-y0)*.25||0);
   const hi=(D.tipo==='pct')?Math.min(1,y1+0.05):y1+((y1-y0)*.25||1);
-  const px=i=>ml+(i/(pts.length-1))*(W-ml-mr);
+  /* eixo x pela DATA, não pelo índice: buraco de medição aparece como buraco */
+  const x0=pts[0].x, span=Math.max(1,dias(x0,pts[pts.length-1].x));
+  const px=p=>ml+(dias(x0,p.x)/span)*(W-ml-mr);
   const py=v=>mt+(1-((v-lo)/((hi-lo)||1)))*(H-mt-mb);
   const fmt=v=>D.tipo==='pct'?pct(v):num(Math.round(v));
-  const d=pts.map((p,i)=>`${i?'L':'M'}${px(i).toFixed(1)},${py(p.y).toFixed(1)}`).join(' ');
-  const area=`${d} L${px(pts.length-1).toFixed(1)},${py(lo)} L${px(0).toFixed(1)},${py(lo)} Z`;
-  const ticks=[lo,(lo+hi)/2,hi];
+  const d=pts.map((p,i)=>`${i?'L':'M'}${px(p).toFixed(1)},${py(p.y).toFixed(1)}`).join(' ');
   const ult=pts[pts.length-1];
+  const area=`${d} L${px(ult).toFixed(1)},${py(lo)} L${px(pts[0]).toFixed(1)},${py(lo)} Z`;
+  const ticks=[lo,(lo+hi)/2,hi];
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   svg.innerHTML=
      ticks.map(t=>`<line class="grade" x1="${ml}" y1="${py(t)}" x2="${W-mr}" y2="${py(t)}"/>
        <text x="${ml-8}" y="${py(t)+3.5}" text-anchor="end">${fmt(t)}</text>`).join('')
     +`<path class="area" d="${area}"/><path class="linha" d="${d}"/>`
-    +`<circle class="pt" cx="${px(pts.length-1)}" cy="${py(ult.y)}" r="4"/>`
-    +`<text class="valor" x="${px(pts.length-1)-6}" y="${py(ult.y)-10}" text-anchor="end">${fmt(ult.y)}</text>`
+    +`<circle class="pt" cx="${px(ult)}" cy="${py(ult.y)}" r="4"/>`
+    +`<text class="valor" x="${px(ult)-6}" y="${py(ult.y)-10}" text-anchor="end">${fmt(ult.y)}</text>`
     +[0,Math.floor((pts.length-1)/2),pts.length-1].map(i=>
-       `<text x="${px(i)}" y="${H-6}" text-anchor="${i===0?'start':i===pts.length-1?'end':'middle'}">${diaBR(pts[i].x)}</text>`).join('');
+       `<text x="${px(pts[i])}" y="${H-6}" text-anchor="${i===0?'start':i===pts.length-1?'end':'middle'}">${diaBR(pts[i].x)}</text>`).join('');
 }
 
-/* ── fila de trabalho ── */
+/* ── fila de trabalho: o que pede uma pessoa, não uma rotina ──
+   Saiu "sem classificação em <pasta>": a permissão agora vem da pasta da nota
+   (área), não da tag acesso/ — a contagem não travava mais nada.          */
 function fila(){
   if(!COR){$('fila').innerHTML='<div class="vazio">sem medição ainda.</div>';return;}
-  const bruto=COR.sem_tag_por_pasta||[];
-  const pp=(Array.isArray(bruto)?bruto:Object.entries(bruto)).slice().sort((a,b)=>b[1]-a[1]);
+  const x=IX(COR), p=PUB(COR), a=ADE(COR);
+  const todos=Object.keys((AD&&AD.por_pessoa&&typeof AD.por_pessoa==='object')?AD.por_pessoa:{});
+  const inst=new Set([...(a.instalaram||[]),...(a.provaveis||[])]);
+  const semMigrar=(a.instalaram||[]).filter(n=>!(a.migraram||[]).includes(n));
+  const semInstalar=todos.length?todos.filter(n=>!inst.has(n)):[];
   const itens=[
-    ...pp.map(([pasta,n])=>[`sem classificação em ${pasta}`,n]),
-    ['notas grandes demais', COR.acima_40kb],
-    ['arquivos de backup no vault', COR.bak],
-    ['código solto no vault', COR.py_no_vault],
-    ['notas duplicadas', COR.duplicatas_sync],
-    ['notas vazias', COR.vazias],
-  ].filter(x=>x[1]);
-  const mx=Math.max(...itens.map(x=>x[1]),1);
-  $('fila-sub').textContent=`${num(itens.reduce((s,x)=>s+x[1],0))} itens`;
-  $('fila').innerHTML=itens.map(([r,n])=>`<div class="lrow"><span>${esc(r)}</span>
+    ['instalaram e falta o /migrar', semMigrar.length, semMigrar.join(', ')],
+    ['ainda sem o Cérebro instalado', semInstalar.length||(a.escopo?a.escopo-inst.size:0), semInstalar.join(', ')],
+    ['notas que a rotina pulou (sem área definida)', p.puladas, (p.puladas_lista||[]).join(', ')],
+    ['erros na publicação de hoje', p.erros, ''],
+    ['arquivos vazios no vault (apagar)', x.vazias, ''],
+    ['cópias de conflito do OneDrive (apagar)', x.conflito, ''],
+    ['nota com caractere quebrado (corrigir o arquivo)', x.utf8, ''],
+    ['backups (.bak) dentro do vault', COR.bak, ''],
+    ['código (.py) dentro do vault', COR.py_no_vault, ''],
+    ['notas que sumiram do disco (apagar no Cérebro)', x.sumidas, ''],
+  ].filter(i=>i[1]);
+  if(!itens.length){$('fila').innerHTML='<div class="vazio">nada na fila.</div>';$('fila-sub').textContent='vazia';return;}
+  const mx=Math.max(...itens.map(i=>i[1]),1);
+  $('fila-sub').textContent=`${itens.length} tipo(s) de item`;
+  $('fila').innerHTML=itens.map(([r,n,t])=>`<div class="lrow" title="${esc(t)}"><span>${esc(r)}${t?`<br><small style="color:var(--texto-sec)">${esc(t)}</small>`:''}</span>
     <div class="trk"><i class="rm" style="width:${(n/mx)*100}%"></i></div><b>${num(n)}</b></div>`).join('');
 }
 
-/* ── bloqueios ── */
+/* ── o que falta para liberar ──
+   Só o que trava abrir o Cérebro para todos ou o corte, com o que libera.
+   Os bloqueios técnicos de agosto ficam no banco como `fechado`.          */
 function bloqueios(){
-  if(!BLOQ.length){$('bqs').innerHTML='<div class="vazio">nada publicado.</div>';return;}
-  const hoje=new Date().toISOString().slice(0,10);
+  if(!BLOQ.length){$('bqs').innerHTML='<div class="vazio">nada travando.</div>';$('bq-sub').textContent='';return;}
   const ab=BLOQ.filter(b=>b.estado==='aberto').length;
-  $('bq-sub').textContent=`${ab} aberto(s)`;
+  $('bq-sub').textContent=`${ab} em aberto`;
   $('bqs').innerHTML=BLOQ.map(b=>{
-    const d=b.verificado_em?dias(b.verificado_em,hoje):null;
-    const cls=b.estado==='caiu'?'caiu':(b.estado==='fechado'?'':b.gravidade);
+    const cls=b.estado==='caiu'?'caiu':b.gravidade;
     return `<div class="bq ${cls}">
-      <div class="tt">${esc(b.titulo)}</div>
+      <div class="tt">${esc(b.titulo)}<div style="font-weight:400;font-size:11.5px;color:var(--texto-sec);margin-top:3px;line-height:1.45">${esc(b.trava)}</div></div>
       <div class="dn">${esc(b.dono)}</div>
-      <div class="vr ${d==null?'nunca':''}">${b.estado==='caiu'?'✓ resolvido'
-        :(d==null?'nunca checado':(d===0?'checado hoje':`checado há ${d} d`))}</div></div>`;
+      <div class="vr">${b.estado==='caiu'?'✓ resolvido':'falta'}</div></div>`;
   }).join('');
-}
-
-/* ── testes ── */
-function testes(){
-  if(!GATE.length){$('tsts').innerHTML='<div class="vazio">sem importação — rode <code>py vetorial_cli.py gate</code>.</div>';return;}
-  $('tsts').innerHTML=GATE.map(t=>{
-    const res=(t.b_label||'—')+(t.b_bom_alto===false?' ↓':'');
-    return `<div class="tst ${t.is_gate?'decide':''}" data-cod="${esc(t.codigo)}"
-         role="button" tabindex="0" aria-expanded="false" aria-controls="td-${esc(t.codigo)}">
-      <div class="cod">${esc(t.codigo)}</div>
-      <div class="tt">${esc(t.titulo)}</div>
-      <div><span class="pill ${esc(t.estado)}">${esc(t.estado)}</span></div>
-      <div class="res">${esc(res)}</div>
-      <div class="det" id="td-${esc(t.codigo)}" style="grid-column:1/-1">
-        <b>Decide:</b> ${esc(t.decide)}
-        ${t.obs?`<br><b>Achado:</b> ${esc(t.obs)}`:''}
-        ${t.b_label?`<br>${esc(t.b_rotulo||'cérebro')}: <b>${esc(t.b_label)}</b>`
-          +(t.b2_label?` · ${esc(t.b2_rotulo||'')}: <b>${esc(t.b2_label)}</b>`:'')
-          +(t.a_label?` · grep no vault: <b>${esc(t.a_label)}</b>`:''):''}
-      </div></div>`;
-  }).join('');
-  const alt=el=>{const c=el.getAttribute('data-cod'),d=$('td-'+c);
-    if(d){const o=d.classList.toggle('show');el.setAttribute('aria-expanded',o?'true':'false');}};
-  $('tsts').addEventListener('click',e=>{const g=e.target.closest('.tst');if(g)alt(g);});
-  $('tsts').addEventListener('keydown',e=>{
-    if(e.key!=='Enter'&&e.key!==' ')return;
-    const g=e.target.closest('.tst'); if(!g)return; e.preventDefault(); alt(g);});
 }
 
 function mostrarApp(s){USER=s.user;$('gate').classList.remove('show');$('app').classList.add('show');carregar();realtime();}
