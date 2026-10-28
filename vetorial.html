@@ -224,6 +224,20 @@
   .fi details{grid-column:2;font-size:11.5px;color:var(--texto-sec)}
   .fi details summary{cursor:pointer;color:var(--grafite-3)}
   .fg .zero{font-size:12px;color:var(--texto-sec)}
+  /* tarefas em aberto (28/10, 2º desenho): uma linha por item, sem cartão e
+     sem borda colorida; o passo do plano e o dono como etiquetas pequenas */
+  .tas{display:flex;flex-direction:column}
+  .ta{display:grid;grid-template-columns:16px minmax(0,1fr) auto auto;gap:10px;align-items:baseline;
+    padding:7px 2px;border-bottom:1px solid var(--borda);font-size:12.5px}
+  .ta:last-child{border-bottom:0}
+  .ta .mk{color:var(--grafite-3);font-size:11px;text-align:center}
+  .ta.feito .mk{color:var(--ok)}.ta.feito .tt{text-decoration:line-through;color:var(--texto-sec)}
+  .ta .tt{font-weight:650}
+  .ta .tt small{display:block;font-weight:400;font-size:11.5px;color:var(--texto-sec);margin-top:1px}
+  .eti{font:650 10.5px var(--fonte);color:var(--grafite-3);border:1px solid var(--borda-2);border-radius:99px;
+    padding:1px 8px;white-space:nowrap}
+  .eti.passo{color:var(--laranja-escuro);border-color:var(--laranja-tint);background:var(--laranja-tint)}
+  @media(max-width:620px){.ta{grid-template-columns:16px minmax(0,1fr) auto}.ta .eti.dono{display:none}}
   .vazio{font-size:12px;color:var(--texto-sec);line-height:1.55}
   .rod{font-size:11px;color:var(--texto-sec);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
   .rod code{background:var(--card);border:1px solid var(--borda);border-radius:5px;padding:1px 5px;
@@ -284,6 +298,11 @@
     </div>
 
     <div class="pn">
+      <h3>Tarefas em aberto <span id="ta-sub">—</span></h3>
+      <div class="tas" id="tas"></div>
+    </div>
+
+    <div class="pn">
       <h3>Como está evoluindo <span id="g-sub"></span><span class="recorte" id="g-rec"></span></h3>
       <div class="gcabe" id="g-tabs"></div>
       <svg class="chart" id="chart" preserveAspectRatio="none"></svg>
@@ -338,7 +357,7 @@ const VAULT='Cerebro Dot';
    rodando a página velha, com os dados novos chegando pelo realtime, e mostrou
    números e linhas que a página nova já não mostra. Agora a página confere de
    tempos em tempos se a versão publicada mudou e, se mudou, recarrega. */
-const VERSAO='2026-10-28T18:40:04';
+const VERSAO='2026-10-28T18:56:22';
 setInterval(async()=>{
   try{
     const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});
@@ -461,7 +480,7 @@ const CHAVE='vet_tiles_v2';
 try{ localStorage.removeItem('vet_tiles'); }catch(e){}
 
 const SL={todo:'a fazer',doing:'andando',done:'feito',blocked:'travado',cancel:'cancelado'};
-let COR=null, SERIE=[], AD=null, ADS=[], CQ=[], PLANO=[], CANAL=null, USER=null;
+let COR=null, SERIE=[], AD=null, ADS=[], CQ=[], PLANO=[], BLOQ=[], CANAL=null, USER=null;
 /* o gráfico abre num dado que já tem série (a adoção vem desde agosto) */
 let ESCOLHA=carregarEscolha(), G_ATIVO='ra';
 
@@ -500,11 +519,12 @@ async function carregar(){
   const desde=iso(new Date(Date.now()-29*86400000));
   /* histórico inteiro: são poucas centenas de linhas, e o recorte do gráfico
      (7, 30, 90 dias ou tudo) decide o que aparece */
-  const [c,a,q,p]=await Promise.all([
+  const [c,a,q,p,b]=await Promise.all([
     sb.from('vet_corpus_dia').select('*').order('data',{ascending:true}).limit(1000),
     sb.from('cerebro_adocao_dia').select('*').order('data',{ascending:true}).limit(1000),
     sb.from('cerebro_consultas').select('pessoa,data,nota').limit(5000),
-    sb.from('vet_plano').select('*').order('ordem')]);
+    sb.from('vet_plano').select('*').order('ordem'),
+    sb.from('vet_bloqueios').select('*').order('ordem')]);
   /* o export do servidor, se a tabela já existir (sql/schema_vetorial_v3.sql);
      sem ela, o ranking de consulta usa o registro da skill */
   try{ const u=await sb.from('vet_uso_servidor').select('data,pessoa,notas_distintas').limit(20000);
@@ -518,13 +538,15 @@ async function carregar(){
   ADS=a.error?[]:(a.data||[]); AD=ADS.length?ADS[ADS.length-1]:null;
   CONS_TODAS=q.error?[]:(q.data||[]); CQ=CONS_TODAS.filter(x=>x.data>=desde);
   PLANO=p.error?[]:(p.data||[]).filter(x=>x.status!=='cancel');
+  /* os de agosto ficam no banco como `fechado`: não aparecem */
+  BLOQ=b.error?[]:(b.data||[]).filter(x=>x.estado!=='fechado');
   render();
 }
 let CONS_TODAS=[];
 function realtime(){
   if(CANAL) return;
   CANAL=sb.channel('rt-vetorial');
-  ['vet_corpus_dia','cerebro_adocao_dia','cerebro_consultas','vet_plano'].forEach(t=>
+  ['vet_corpus_dia','cerebro_adocao_dia','cerebro_consultas','vet_plano','vet_bloqueios'].forEach(t=>
     CANAL.on('postgres_changes',{event:'*',schema:'public',table:t},carregar));
   CANAL.subscribe();
 }
@@ -539,7 +561,7 @@ function render(){
   $('area-sel').innerHTML=`<option value="">todas</option>`
     +AREAS.map(a=>`<option ${a===AREA?'selected':''}>${a}</option>`).join('');
   $('t-rot').textContent=AREA?`Dados · área ${AREA}`:'Dados';
-  tiles(); timeline(); grafico(); areasCerebro(); usoQuem(); fila();
+  tiles(); timeline(); tarefas(); grafico(); areasCerebro(); usoQuem(); fila();
   $('rod-gw').innerHTML = COR
     ? `Cérebro ${COR.health_ok?`<b>no ar</b> · ${num(COR.health_ms)} ms`:'<b>fora</b>'} · medido em ${fmtBR(COR.data)}`
     : 'sem medição';
@@ -851,6 +873,27 @@ function fila(){
     $('fila-sub').textContent='o que pede uma pessoa, não a rotina';
   }
   $('fila').innerHTML=g1+g2+g3;
+}
+
+
+/* ── tarefas em aberto (vet_bloqueios) ──
+   O Thomas: "eu gostei daquelas tarefas em aberto, mas não gostei do modo de
+   exibição delas". Uma linha por item: marcador de estado, título, "libera" em
+   cinza, a etiqueta do passo do plano (o painel diz qual) e o dono. */
+function tarefas(){
+  const ab=BLOQ.filter(b=>b.estado!=='caiu').length;
+  $('ta-sub').textContent=BLOQ.length?`${ab} em aberto`:'';
+  if(!BLOQ.length){$('tas').innerHTML='<div class="vazio">nada em aberto.</div>';return;}
+  const pp=PN(COR).bloq_passo||{};
+  $('tas').innerHTML=BLOQ.map(b=>{
+    const feito=b.estado==='caiu', passo=pp[b.id];
+    const lib=String(b.trava||'').replace(/^libera:\s*/i,'');
+    return `<div class="ta ${feito?'feito':''}">
+      <span class="mk">${feito?'✓':'○'}</span>
+      <span class="tt">${esc(b.titulo)}${lib?`<small>libera: ${esc(lib)}</small>`:''}</span>
+      ${passo?`<span class="eti passo">passo ${esc(passo)}</span>`:'<span></span>'}
+      <span class="eti dono">${esc(b.dono)}</span></div>`;
+  }).join('');
 }
 
 function mostrarApp(s){USER=s.user;$('gate').classList.remove('show');$('app').classList.add('show');carregar();realtime();}
