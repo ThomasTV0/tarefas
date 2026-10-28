@@ -215,16 +215,16 @@
   /* 28/10, noite: áreas, quem usa e o mapa */
   .arow{display:grid;grid-template-columns:110px minmax(0,1fr) 150px;gap:10px;align-items:center;font-size:12.5px;padding:3px 0}
   .arow .trk{height:9px}
-  .arow .rm{background:var(--laranja)}
-  .arow.on{font-weight:700}.arow.on .rm{background:var(--laranja-escuro)}
+  .arow .trk i{background:var(--laranja)}
+  .arow.on{font-weight:700}.arow.on .trk i{background:var(--laranja-escuro)}
   .arow.fosco{opacity:.45}
   .arow b{text-align:right;font-weight:650;font-variant-numeric:tabular-nums}
   .nota-rod{font-size:11.5px;color:var(--texto-sec);margin-top:8px;line-height:1.5}
   .rk{display:grid;grid-template-columns:22px 130px minmax(0,1fr) 60px;gap:10px;align-items:center;font-size:12.5px;padding:3px 0}
   .rk .ps2{font:750 11px var(--fonte);color:var(--texto-sec);text-align:right}
   .rk b{text-align:right;font-variant-numeric:tabular-nums}
-  .rk .rm{background:var(--grafite-2)}
-  .rk.rot{opacity:.6}.rk.rot .rm{background:var(--borda-2)}
+  .rk .trk i{background:var(--grafite-2)}
+  .rk.rot{opacity:.6}.rk.rot .trk i{background:var(--borda-2)}
   .mapa{width:100%;height:440px;display:block}
   .mapa .ar{stroke:var(--borda-2)}
   .mapa .ar.on{stroke:var(--laranja)}
@@ -359,7 +359,7 @@ const VAULT='Cerebro Dot';
    rodando a página velha, com os dados novos chegando pelo realtime, e mostrou
    números e linhas que a página nova já não mostra. Agora a página confere de
    tempos em tempos se a versão publicada mudou e, se mudou, recarrega. */
-const VERSAO='2026-10-28T18:26:05';
+const VERSAO='2026-10-28T18:27:57';
 setInterval(async()=>{
   try{
     const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});
@@ -787,7 +787,7 @@ function areasCerebro(){
   $('ar-sub').textContent=`${num(A.total)} notas · % das notas`;
   const sa=A.por_area['sem área'];
   $('areas').innerHTML=lin.map(([a,x])=>`<div class="arow ${AREA===a?'on':(AREA?'fosco':'')}">
-      <span>${esc(a)}</span><div class="trk"><i class="rm" style="width:${(x.notas/mx)*100}%"></i></div>
+      <span>${esc(a)}</span><div class="trk"><i style="width:${(x.notas/mx)*100}%"></i></div>
       <b>${pc(x.notas/tot)} · ${num(x.notas)} · ${mb(x.bytes)}</b></div>`).join('')
     +`<div class="nota-rod">${sa?`<b>Sem área:</b> ${num(sa.notas)} nota(s) (${pc(sa.notas/tot)}) — ${esc((A.sem_area||[]).slice(0,6).join(', '))}${(A.sem_area||[]).length>6?'…':''}<br>`:''}`
     +`Critério: nota em duas áreas conta na área principal, para a soma fechar em 100%. Tamanho em MB do texto (${mb(mbTot)} no total).</div>`;
@@ -830,7 +830,7 @@ function usoQuem(){
   const mx=Math.max(...linhas.map(([,v])=>tot(v)),1);
   const det=v=>USO_MODO==='criacao'?`${num(v[0])} criadas · ${num(v[1])} edições`:'';
   const row=([p,v],i,cls)=>`<div class="rk ${cls}" title="${esc(det(v))}"><span class="ps2">${cls?'':i+1}</span>
-      <span>${esc(p)}</span><div class="trk"><i class="rm" style="width:${(tot(v)/mx)*100}%"></i></div><b>${num(tot(v))}</b></div>`;
+      <span>${esc(p)}</span><div class="trk"><i style="width:${(tot(v)/mx)*100}%"></i></div><b>${num(tot(v))}</b></div>`;
   $('uso').innerHTML=(gente.length?gente.map((x,i)=>row(x,i,'')).join(''):'<div class="vazio">sem dado neste recorte.</div>')
     +(rot.length?`<div class="nota-rod" style="margin:8px 0 2px"><b>Rotinas automáticas</b></div>`+rot.map((x,i)=>row(x,i,'rot')).join(''):'')
     +`<div class="nota-rod">${rod}</div>`;
@@ -845,27 +845,25 @@ function mapa(){
   if(!G||!G.nos||!G.nos.length){svg.innerHTML='<text x="20" y="40">sem dado — rode a medição.</text>';return;}
   const W=1000,H=440, nos=G.nos.map(n=>({...n})), idx={};
   nos.forEach((n,i)=>idx[n.id]=i);
-  const areas=nos.filter(n=>n.tipo==='area');
-  areas.forEach((n,i)=>{const a=2*Math.PI*i/areas.length; n.x=W/2+300*Math.cos(a); n.y=H/2+150*Math.sin(a);});
-  let k=0;
-  nos.filter(n=>n.tipo==='hub').forEach(n=>{const p=nos[idx['area:'+n.area]]||{x:W/2,y:H/2};
-    const a=k++*2.399; n.x=p.x+60*Math.cos(a); n.y=p.y+40*Math.sin(a);});
+  /* Layout em anéis, sem simulação (a de força empilhava os hubs sobre Ops e
+     IM): a área com mais hubs fica no centro com os hubs dela em volta; as
+     outras áreas, num anel de fora; hub de outra área fica junto da sua. */
   const ar=G.arestas.filter(([a,b])=>a in idx&&b in idx);
-  const r=n=>n.tipo==='area'?8+Math.sqrt(n.n)*0.9:3+Math.sqrt(n.n)*0.8;
-  for(let it=0;it<400;it++){
-    const t=1-it/400;
-    nos.forEach(n=>{n.vx=0;n.vy=0;});
-    for(let i=0;i<nos.length;i++)for(let j=i+1;j<nos.length;j++){
-      const a=nos[i],b=nos[j];let dx=a.x-b.x,dy=a.y-b.y;let d=Math.hypot(dx,dy)||1;
-      const f=2600/(d*d); dx/=d;dy/=d; a.vx+=dx*f;a.vy+=dy*f;b.vx-=dx*f;b.vy-=dy*f;}
-    ar.forEach(([x,y,w])=>{const a=nos[idx[x]],b=nos[idx[y]];const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1;
-      const alvo=(a.tipo==='area'&&b.tipo==='area')?220:70;
-      const f=(d-alvo)*0.02*Math.min(1,0.3+Math.log10(w+1)/3);
-      a.vx+=dx/d*f;a.vy+=dy/d*f;b.vx-=dx/d*f;b.vy-=dy/d*f;});
-    nos.forEach(n=>{n.vx+=(W/2-n.x)*0.004;n.vy+=(H/2-n.y)*0.008;
-      n.x+=Math.max(-12,Math.min(12,n.vx))*t; n.y+=Math.max(-12,Math.min(12,n.vy))*t;
-      n.x=Math.max(40,Math.min(W-40,n.x)); n.y=Math.max(24,Math.min(H-24,n.y));});
-  }
+  const r=n=>n.tipo==='area'?7+Math.sqrt(n.n)*0.75:3+Math.sqrt(n.n)*0.7;
+  const areas=nos.filter(n=>n.tipo==='area').sort((a,b)=>b.n-a.n);
+  const hubsDe=a=>nos.filter(n=>n.tipo==='hub'&&n.area===a.area);
+  const centro=areas.slice().sort((a,b)=>hubsDe(b).length-hubsDe(a).length)[0];
+  const CX=W/2, CY=H/2;
+  centro.x=CX; centro.y=CY;
+  const fora=areas.filter(n=>n!==centro);
+  fora.forEach((n,i)=>{const ang=-Math.PI/2+2*Math.PI*(i+0.5)/fora.length;
+    n.x=CX+455*Math.cos(ang); n.y=CY+190*Math.sin(ang); n.ang=ang;});
+  const hc=hubsDe(centro);
+  hc.forEach((n,i)=>{const ang=-Math.PI/2+2*Math.PI*i/hc.length, k=(i%2?1:0.78);
+    n.x=CX+250*k*Math.cos(ang); n.y=CY+150*k*Math.sin(ang); n.ang=ang;});
+  fora.forEach(a=>hubsDe(a).forEach((n,i)=>{const t=Math.atan2(CY-a.y,CX-a.x)+(i-0.5)*0.5;
+    n.x=a.x+45*Math.cos(t); n.y=a.y+45*Math.sin(t); n.ang=t;}));
+  nos.forEach(n=>{n.x=Math.max(46,Math.min(W-46,n.x)); n.y=Math.max(22,Math.min(H-14,n.y));});
   const mxw=Math.max(...ar.map(e=>e[2]),1);
   const liga=new Set(); if(AREA){ar.forEach(([a,b])=>{if(a==='area:'+AREA||b==='area:'+AREA){liga.add(a);liga.add(b);}});}
   const fosco=n=>AREA&&n.id!=='area:'+AREA&&!liga.has(n.id)&&n.area!==AREA;
@@ -875,8 +873,12 @@ function mapa(){
         stroke-width="${(0.6+3.4*Math.log(w+1)/Math.log(mxw+1)).toFixed(2)}" opacity="${AREA&&!on?0.25:0.7}"><title>${num(w)} link(s)</title></line>`;}).join('')
     +nos.map(n=>`<circle class="${n.tipo==='area'?'na':'nh'} ${fosco(n)?'fosco':''}" cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${r(n).toFixed(1)}">
         <title>${esc(n.rot)} · ${num(n.n)} ${n.tipo==='area'?'notas':'links'}</title></circle>`).join('')
-    +nos.map(n=>`<text class="${n.tipo==='area'?'':'h'}" x="${n.x.toFixed(1)}" y="${(n.y-r(n)-4).toFixed(1)}" text-anchor="middle"
-        opacity="${fosco(n)?0.4:1}">${esc(n.rot)}</text>`).join('');
+    +nos.map(n=>{
+      if(n.tipo==='area') return `<text x="${n.x.toFixed(1)}" y="${(n.y-r(n)-5).toFixed(1)}" text-anchor="middle"
+        opacity="${fosco(n)?0.4:1}">${esc(n.rot)}</text>`;
+      const dir=Math.cos(n.ang||0)>=0?1:-1;
+      return `<text class="h" x="${(n.x+dir*(r(n)+4)).toFixed(1)}" y="${(n.y+3.5).toFixed(1)}"
+        text-anchor="${dir>0?'start':'end'}" opacity="${fosco(n)?0.4:1}">${esc(n.rot)}</text>`;}).join('');
 }
 
 /* ── fila de trabalho: o que pede uma pessoa, não uma rotina ──
