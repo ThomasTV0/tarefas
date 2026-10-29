@@ -249,6 +249,17 @@
     padding:1px 8px;white-space:nowrap}
   .eti.passo{color:var(--laranja-escuro);border-color:var(--laranja-tint);background:var(--laranja-tint)}
   @media(max-width:620px){.ta{grid-template-columns:16px minmax(0,1fr) auto}.ta .eti.dono{display:none}}
+  /* 29/10: cada estado com marca própria, e continua clicável (é um select
+     com cara de etiqueta). Sem azul; vermelho discreto só para travado. */
+  .est{appearance:none;-webkit-appearance:none;font:650 11.5px var(--fonte);border-radius:99px;
+    padding:4px 12px;border:1px solid var(--borda-2);background:var(--suave);color:var(--texto-sec);
+    cursor:pointer;width:100%;text-align:center}
+  .est:focus-visible{outline:2px solid var(--laranja-escuro);outline-offset:1px}
+  .est.doing{border-color:var(--laranja);background:var(--laranja-tint);color:var(--laranja-escuro)}
+  .est.blocked{border-color:var(--err-bg);background:var(--err-bg);color:var(--err)}
+  .est.done{border-color:var(--grafite);background:var(--grafite);color:#fff}
+  .ps .tt .prox{display:block;font-weight:500;font-size:12px;color:var(--grafite-2);margin-top:5px}
+  .ps .tt .prox b{font-weight:700;color:var(--laranja-escuro)}
   .vazio{font-size:12px;color:var(--texto-sec);line-height:1.55}
   .rod{font-size:11px;color:var(--texto-sec);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
   .rod code{background:var(--card);border:1px solid var(--borda);border-radius:5px;padding:1px 5px;
@@ -368,7 +379,7 @@ const VAULT='Cerebro Dot';
    rodando a página velha, com os dados novos chegando pelo realtime, e mostrou
    números e linhas que a página nova já não mostra. Agora a página confere de
    tempos em tempos se a versão publicada mudou e, se mudou, recarrega. */
-const VERSAO='2026-10-29T09:21:50';
+const VERSAO='2026-10-29T11:06:55';
 setInterval(async()=>{
   try{
     const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});
@@ -499,6 +510,7 @@ const CHAVE='vet_tiles_v2';
 try{ localStorage.removeItem('vet_tiles'); }catch(e){}
 
 const SL={todo:'a fazer',doing:'andando',done:'feito',blocked:'travado',cancel:'cancelado'};
+const MARCA={todo:'○',doing:'◐',blocked:'⚠',done:'✓'};   /* etiqueta de estado do plano */
 let COR=null, SERIE=[], AD=null, ADS=[], CQ=[], PLANO=[], BLOQ=[], CANAL=null, USER=null;
 /* o gráfico abre num dado que já tem série (a adoção vem desde agosto) */
 let ESCOLHA=carregarEscolha(), G_ATIVO='ra';
@@ -717,7 +729,8 @@ function det(p){
   let d={texto:p.detalhe||''};
   try{ const j=JSON.parse(p.detalhe||''); if(j&&typeof j==='object') d=j; }catch(e){}
   const x=(PN(COR).plano||{})[p.codigo]||{};
-  return {texto:d.texto||'', depende:x.depende||d.depende||'—', tamanho:x.tamanho||d.tamanho||''};
+  return {texto:d.texto||'', depende:x.depende||d.depende||'—', tamanho:x.tamanho||d.tamanho||'',
+          proximo:x.proximo||''};
 }
 function timeline(){
   if(!PLANO.length){
@@ -734,11 +747,11 @@ function timeline(){
     const sub=[dep,extra].filter(Boolean).join(' · ');
     return `<div class="ps ${esc(p.status)}">
       <div class="nn">${i+1}</div>
-      <div class="tt" title="${esc(d.texto||'')}">${esc(p.titulo)}${sub?`<small>${sub}</small>`:''}</div>
+      <div class="tt" title="${esc(d.texto||'')}">${esc(p.titulo)}${d.proximo&&p.status!=='done'?`<span class="prox"><b>Próximo:</b> ${esc(d.proximo)}</span>`:''}${sub?`<small>${sub}</small>`:''}</div>
       <div class="dn">${esc(p.dono||'')}</div>
       <div class="tam" title="P dias · M semanas · G meses ou depende de fora">${esc(d.tamanho||'—')}</div>
-      <select class="sel" onchange="mudarStatus('${esc(p.codigo)}',this.value)">
-        ${Object.keys(SL).filter(s=>s!=='cancel').map(s=>`<option value="${s}" ${s===p.status?'selected':''}>${SL[s]}</option>`).join('')}
+      <select class="est ${esc(p.status)}" title="mudar o estado" onchange="mudarStatus('${esc(p.codigo)}',this.value)">
+        ${['todo','doing','blocked','done'].map(s=>`<option value="${s}" ${s===p.status?'selected':''}>${MARCA[s]} ${SL[s]}</option>`).join('')}
       </select></div>`;
   };
   const ord=f=>PLANO.filter(p=>p.faixa===f).sort((a,b)=>a.ordem-b.ordem);
