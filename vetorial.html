@@ -368,7 +368,7 @@ const VAULT='Cerebro Dot';
    rodando a página velha, com os dados novos chegando pelo realtime, e mostrou
    números e linhas que a página nova já não mostra. Agora a página confere de
    tempos em tempos se a versão publicada mudou e, se mudou, recarrega. */
-const VERSAO='2026-10-29T09:20:28';
+const VERSAO='2026-10-29T09:21:50';
 setInterval(async()=>{
   try{
     const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});
@@ -432,12 +432,13 @@ const METRICAS=[
              pe:`notas da área publicadas em 7 dias · ${num(a.ja_em_dia||0)} já em dia · ${num(a.erros||0)} erro(s) · última ${quandoExec(PUB(d).inicio)}`};},
    /* foto de antes de 29/10 (sem `execucoes`): mostra a execução que ela tem */
    v:d=>(PUB(d).execucoes||PUB(d).inicio)?PUB(d).publicadas:null,
-   cls:d=>(PUB(d).erros>0?'ruim':''),
+   /* o número é quanto foi publicado: não pinta de vermelho; só os erros */
+   cls:()=>'',
    pe:d=>{const p=PUB(d);
      if(!p.execucoes&&p.inicio) return `só a execução de ${quandoExec(p.inicio)} (medição anterior à soma semanal)`;
      if(!p.execucoes) return 'nenhuma execução da rotina em 7 dias';
      return `notas publicadas em 7 dias · ${num(p.execucoes)} execução(ões) · ${num(p.ja_em_dia)} já em dia · `
-       +`${num(p.puladas)} pulada(s) · ${num(p.erros)} erro(s)<br>última execução <span class="quando">${quandoExec(p.inicio)}</span>`;}},
+       +`${num(p.puladas)} pulada(s) · ${p.erros?`<b style="color:var(--err)">${num(p.erros)} erro(s)</b>`:'0 erro'}<br>última execução <span class="quando">${quandoExec(p.inicio)}</span>`;}},
   {k:'pub_problemas', g:G1, rot:'Problemas na publicação (semana)', bom:'baixo', hoje:true,
    va:d=>{const a=PA_PUB(d); return {v:(a.erros||0)+(a.puladas||0), pe:`${num(a.erros||0)} erro · ${num(a.puladas||0)} pulada`};},
    v:d=>{const p=PUB(d); return p.inicio==null?null:(p.erros||0)+(p.puladas||0)+(p.adiadas||0)+(p.sumidas||0);},
